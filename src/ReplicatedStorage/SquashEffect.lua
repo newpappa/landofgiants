@@ -1,7 +1,6 @@
 local SquashEffect = {
     -- Animation parameters
-    SQUASH_SCALE = Vector3.new(2, 0.1, 2), -- Flatten on Y axis, spread on X and Z
-    ANIMATION_DURATION = 0.15, -- Quick squash animation
+    SQUASH_ANIMATION_ID = "rbxassetid://393916540", -- Death animation
     
     -- Particle effect configuration
     PARTICLE_COLOR = Color3.fromRGB(150, 150, 150), -- Gray dust color

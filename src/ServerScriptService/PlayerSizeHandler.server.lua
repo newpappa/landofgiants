@@ -1,19 +1,19 @@
 local Players = game:GetService("Players")
-local PlayerSizeModule = require(game:GetService("ReplicatedStorage"):WaitForChild("PlayerSizeModule"))
 
 -- Configuration
-local MIN_SIZE = 1    -- Normal size
-local MAX_SIZE = 10   -- 1000% bigger
+local MIN_SIZE = 0.2    -- 1 foot tall (0.2x normal size)
+local MAX_SIZE = 20     -- 100 feet tall (20x normal size)
+
+local function getRandomSize()
+	return MIN_SIZE + math.random() * (MAX_SIZE - MIN_SIZE)
+end
 
 local function setPlayerSize(player)
-	local randomSize = PlayerSizeModule.getRandomSize()
+	local randomSize = getRandomSize()
 	
 	-- Wait for character to load
 	local character = player.Character or player.CharacterAdded:Wait()
-	
-	-- Set the size by scaling all body parts
-	local humanoid = character:WaitForChild("Humanoid")
-	local rootPart = character:WaitForChild("HumanoidRootPart")
+	print("Setting size for", player.Name, "to", randomSize)
 	
 	-- Scale the character
 	character:ScaleTo(randomSize)
@@ -29,4 +29,6 @@ end)
 -- Handle existing players
 for _, player in ipairs(Players:GetPlayers()) do
 	setPlayerSize(player)
-end 
+end
+
+print("PlayerSizeHandler initialized!") 
