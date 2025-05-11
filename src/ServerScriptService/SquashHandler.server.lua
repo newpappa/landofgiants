@@ -1,3 +1,13 @@
+--[[
+Name: SquashHandler
+Type: Script
+Location: ServerScriptService
+Description: Handles player squash mechanics and collision detection
+Interacts With:
+  - PlayerSizeModule: Uses player size data for squash calculations
+  - SquashEvent: Fires client events for squash effects
+--]]
+
 print("=== SQUASH HANDLER STARTING ===")
 
 -- Verify we're in the correct service
@@ -55,11 +65,17 @@ local function handleFootToHeadCollision(footPart, headPart)
         return
     end
     
-    print("SQUASH! " .. topPlayer.Name .. " squashed " .. bottomPlayer.Name)
-    
-    -- Get the bottom player's humanoid
+    -- Get the bottom player's character and check spawn time
     local bottomChar = bottomPlayer.Character
     if not bottomChar then return end
+    
+    -- Check if the character has a SpawnTime value
+    local spawnTime = bottomChar:GetAttribute("SpawnTime")
+    if spawnTime and (os.time() - spawnTime) < 2 then -- 2 second protection
+        return -- Player is still protected
+    end
+    
+    print("SQUASH! " .. topPlayer.Name .. " squashed " .. bottomPlayer.Name)
     
     local humanoid = bottomChar:FindFirstChild("Humanoid")
     if not humanoid then return end
@@ -73,6 +89,9 @@ end
 
 -- Set up collision detection for a player's character
 local function setupCharacterCollision(character)
+    -- Set spawn time attribute
+    character:SetAttribute("SpawnTime", os.time())
+    
     -- Get the foot and set up its collision
     local rightFoot = character:WaitForChild("RightFoot", 2)
     local leftFoot = character:WaitForChild("LeftFoot", 2)
