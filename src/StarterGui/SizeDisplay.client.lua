@@ -1,7 +1,18 @@
+--[[
+Name: SizeDisplay
+Type: LocalScript
+Location: StarterGui
+Description: Manages the HUD display of player size information
+Interacts With:
+  - PlayerSizeModule: Gets size formatting utilities
+  - SizeStateMachine: Gets real-time size data
+  - ButtonStyler: Uses styling for HUD elements
+--]]
+
 local Players = game:GetService("Players")
-local StarterGui = game:GetService("StarterGui")
-local PlayerSizeModule = require(game:GetService("ReplicatedStorage"):WaitForChild("PlayerSizeModule"))
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PlayerSizeModule = require(ReplicatedStorage:WaitForChild("PlayerSizeModule"))
+local SizeStateMachine = require(ReplicatedStorage:WaitForChild("SizeStateMachine"))
 
 -- Create the GUI elements
 local screenGui = Instance.new("ScreenGui")
@@ -38,37 +49,34 @@ sizeLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 sizeLabel.Text = "Size: Loading..." -- Initial text
 sizeLabel.Parent = frame
 
--- Function to update the size display
-local function updateSizeDisplay(character)
-    if not character then return end
-    
-    local size = character:GetScale()
-    if size then
-        sizeLabel.Text = PlayerSizeModule.formatSizeText(size)
-    end
-end
-
 -- Get the local player
 local player = Players.LocalPlayer
 
--- Update for current character if it exists
-if player.Character then
-    updateSizeDisplay(player.Character)
+-- Function to update the size display
+local function updateSizeDisplay()
+    local size = SizeStateMachine:GetPlayerSize(player)
+    print("SizeDisplay: Got size for player", player.Name, ":", size) -- Debug log
+    if size then
+        local formattedText = PlayerSizeModule.formatSizeText(size)
+        print("SizeDisplay: Formatted text:", formattedText) -- Debug log
+        sizeLabel.Text = formattedText
+    else
+        print("SizeDisplay: No size found for player", player.Name) -- Debug log
+        sizeLabel.Text = "Size: Not Set"
+    end
 end
 
--- Handle character spawning
-player.CharacterAdded:Connect(function(character)
-    updateSizeDisplay(character)
-    
-    -- Update continuously
-    local connection
-    connection = RunService.Heartbeat:Connect(function()
-        if character.Parent then -- Check if character still exists
-            updateSizeDisplay(character)
-        else
-            connection:Disconnect() -- Clean up if character is removed
-        end
-    end)
+-- Update initial display
+print("SizeDisplay: Running initial update") -- Debug log
+updateSizeDisplay()
+
+-- Listen for size changes
+SizeStateMachine.OnSizeChanged.Event:Connect(function(changedPlayer, newSize)
+    print("SizeDisplay: Size changed event received for", changedPlayer.Name, "size:", newSize) -- Debug log
+    if changedPlayer == player then
+        print("SizeDisplay: Updating display for local player") -- Debug log
+        updateSizeDisplay()
+    end
 end)
 
 -- Parent the ScreenGui
