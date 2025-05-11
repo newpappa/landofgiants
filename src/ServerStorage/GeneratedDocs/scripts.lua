@@ -17,19 +17,26 @@ return [[
 - **Location:** ServerScriptService
 - **Description:** Handles player spawning and initial size setup
 
-### PurchaseProcessor
-#### PurchaseProcessor
-- **Name:** PurchaseProcessor
+### SquashTracker
+#### SquashTracker
+- **Name:** SquashTracker
 - **Type:** Script
 - **Location:** ServerScriptService
-- **Description:** Central handler for processing all marketplace purchases
+- **Description:** Tracks and manages player squash counts
+
+### SpeedTransformationHandler
+#### SpeedTransformationHandler
+- **Name:** SpeedTransformationHandler
+- **Type:** Script
+- **Location:** ServerScriptService
+- **Description:** Handles 2x speed purchases and character speed modification. Speed boost is temporary and resets on death.
 
 ### LeaderstatsUpdater
 #### LeaderstatsUpdater
 - **Name:** LeaderstatsUpdater
 - **Type:** Script
 - **Location:** ServerScriptService
-- **Description:** Creates and updates leaderstats for player size tracking
+- **Description:** Creates and updates leaderstats for player size and squash tracking
 
 ### GrowthHandler
 #### GrowthHandler
@@ -38,12 +45,12 @@ return [[
 - **Location:** ServerScriptService
 - **Description:** Handles player growth when they squash other players
 
-### SpeedTransformationHandler
-#### SpeedTransformationHandler
-- **Name:** SpeedTransformationHandler
+### PurchaseProcessor
+#### PurchaseProcessor
+- **Name:** PurchaseProcessor
 - **Type:** Script
 - **Location:** ServerScriptService
-- **Description:** Handles 2x speed purchases and character speed modification
+- **Description:** Central handler for processing all marketplace purchases
 
 ### GiantTransformationHandler
 #### GiantTransformationHandler
@@ -87,16 +94,16 @@ return [[
 - **Name:** SoundRegistry
 - **Type:** ModuleScript
 - **Location:** ReplicatedStorage
-- **Description:** Manages and plays sound effects for squash events
+- **Description:** Manages and plays sound effects for squash events and purchase success
 
 ## StarterGui
 
-### SizeDisplay
-#### SizeDisplay
-- **Name:** SizeDisplay
-- **Type:** ModuleScript
+### BottomBarManager
+#### BottomBarManager
+- **Name:** BottomBarManager
+- **Type:** LocalScript
 - **Location:** StarterGui
-- **Description:** Component that manages size display functionality
+- **Description:** Manages the bottom bar UI layout including squash count display
 
 ### TopBarManager
 #### TopBarManager
@@ -104,6 +111,22 @@ return [[
 - **Type:** LocalScript
 - **Location:** StarterGui
 - **Description:** Manages the top bar UI layout including size display and purchase buttons
+
+## ReplicatedFirst
+
+### LoadingScreenInit
+#### LoadingScreenInit
+- **Name:** LoadingScreenInit
+- **Type:** LocalScript
+- **Location:** ReplicatedFirst
+- **Description:** Initializes and shows the loading screen when the game starts, before other scripts load
+
+### LoadingScreen
+#### LoadingScreen
+- **Name:** LoadingScreen
+- **Type:** ModuleScript
+- **Location:** ReplicatedFirst
+- **Description:** Creates an absurd, dramatic loading screen with letter-by-letter reveal
 
 
 ]]

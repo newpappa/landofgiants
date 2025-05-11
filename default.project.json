@@ -2,6 +2,10 @@
   "name": "Land of Giants",
   "tree": {
     "$className": "DataModel",
+    "ReplicatedFirst": {
+      "$className": "ReplicatedFirst",
+      "$path": "src/ReplicatedFirst"
+    },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "$path": "src/ReplicatedStorage"
@@ -27,10 +31,6 @@
         "$className": "StarterPlayerScripts",
         "$path": "src/StarterPlayer/StarterPlayerScripts"
       }
-    },
-    "ReplicatedFirst": {
-      "$className": "ReplicatedFirst",
-      "$path": "src/ReplicatedFirst"
     },
     "Lighting": {
       "$className": "Lighting"
