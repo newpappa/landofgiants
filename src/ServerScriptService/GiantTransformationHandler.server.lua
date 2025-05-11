@@ -30,6 +30,14 @@ local function transformPlayerToGiant(player)
     local success = SizeStateMachine:UpdatePlayerSize(player, sizeData)
     if success then
         print("GiantTransformationHandler: Successfully transformed", player.Name, "to giant size", GIANT_SCALE)
+        
+        -- Scale the character if it exists
+        if player.Character then
+            print("GiantTransformationHandler: Scaling character for", player.Name)
+            player.Character:ScaleTo(GIANT_SCALE)
+        else
+            warn("GiantTransformationHandler: No character found to scale for", player.Name)
+        end
     else
         warn("GiantTransformationHandler: Failed to transform", player.Name)
     end
