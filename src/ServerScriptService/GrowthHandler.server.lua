@@ -6,13 +6,13 @@ Description: Handles player growth when they squash other players
 Interacts With:
   - PlayerSizeCalculator: Gets growth calculations
   - SizeStateMachine: Updates size state
-  - SquashEvent: Listens for squash events
+  - SquashHandler: Receives squash events via ServerSquashEvent
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local PlayerSizeCalculator = require(ReplicatedStorage:WaitForChild("PlayerSizeCalculator"))
 local SizeStateMachine = require(ReplicatedStorage:WaitForChild("SizeStateMachine"))
-local SquashEvent = ReplicatedStorage:WaitForChild("SquashEvent")
 
 print("GrowthHandler: Starting up...")
 
@@ -44,7 +44,9 @@ local function handleSquashGrowth(squashedPlayer, biggerPlayer)
     end
 end
 
--- Listen for squash events
-SquashEvent.OnServerEvent:Connect(handleSquashGrowth)
+-- Listen for squash events from SquashHandler
+local SquashHandler = ServerScriptService:WaitForChild("SquashHandler")
+local ServerSquashEvent = SquashHandler:WaitForChild("ServerSquashEvent")
+ServerSquashEvent.Event:Connect(handleSquashGrowth)
 
 print("GrowthHandler initialized!") 

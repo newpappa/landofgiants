@@ -113,7 +113,20 @@ SquashEvent.OnClientEvent:Connect(function(squashedPlayer, biggerPlayer)
             highlight.FillColor = Color3.fromRGB(255, 0, 0)
             highlight.Parent = rootPart
             
-            SoundRegistry.playSquashSound(rootPart)
+            -- Play sound for all nearby players
+            local localPlayer = Players.LocalPlayer
+            if localPlayer and localPlayer.Character then
+                local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if localRoot then
+                    local distance = (localRoot.Position - rootPart.Position).Magnitude
+                    if distance <= 100 then -- 100 studs listening radius
+                        print("Local player within range, playing sound")
+                        SoundRegistry.playSquashSound(localRoot)
+                    else
+                        print("Local player too far to hear sound, distance:", distance)
+                    end
+                end
+            end
             
             -- Remove highlight after 1 second
             task.delay(1, function()

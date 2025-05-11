@@ -6,6 +6,8 @@ Description: Handles player squash mechanics and collision detection
 Interacts With:
   - PlayerSizeCalculator: Uses player size data for squash calculations
   - SquashEvent: Fires client events for squash effects
+  - GrowthHandler: Notifies for growth calculations
+  - SquashTracker: Notifies for squash counting
 --]]
 
 print("=== SQUASH HANDLER STARTING ===")
@@ -45,6 +47,11 @@ else
     print("Found existing SquashEvent")
 end
 
+-- Create BindableEvent for server-side communication
+local ServerSquashEvent = Instance.new("BindableEvent")
+ServerSquashEvent.Name = "ServerSquashEvent"
+ServerSquashEvent.Parent = script
+
 -- Get the player that owns this part's character
 local function getPlayerFromPart(part)
     local character = part:FindFirstAncestorOfClass("Model")
@@ -80,12 +87,20 @@ local function handleFootToHeadCollision(footPart, headPart)
     local humanoid = bottomChar:FindFirstChild("Humanoid")
     if not humanoid then return end
     
-    -- Fire the squash event before killing the player
-    SquashEvent:FireAllClients(bottomPlayer, topPlayer) -- For client effects
-    SquashEvent:FireServer(bottomPlayer, topPlayer) -- For tracking squashes
+    -- First notify all clients about the squash for effects
+    SquashEvent:FireAllClients(bottomPlayer, topPlayer)
     
-    -- Kill the squashed player
-    humanoid.Health = 0
+    -- Then notify server-side handlers about the squash
+    ServerSquashEvent:Fire(bottomPlayer, topPlayer)
+    
+    -- Kill the player and force character removal to ensure clean respawn
+    task.spawn(function()
+        humanoid.Health = 0
+        task.wait(0.1) -- Short delay to ensure death processing
+        if bottomChar and bottomChar.Parent then
+            bottomChar:Destroy()
+        end
+    end)
 end
 
 -- Set up collision detection for a player's character
