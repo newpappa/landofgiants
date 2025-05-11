@@ -17,6 +17,13 @@ return [[
 - **Location:** ServerScriptService
 - **Description:** Handles player spawning and initial size setup
 
+### PurchaseProcessor
+#### PurchaseProcessor
+- **Name:** PurchaseProcessor
+- **Type:** Script
+- **Location:** ServerScriptService
+- **Description:** Central handler for processing all marketplace purchases
+
 ### LeaderstatsUpdater
 #### LeaderstatsUpdater
 - **Name:** LeaderstatsUpdater
@@ -30,6 +37,20 @@ return [[
 - **Type:** Script
 - **Location:** ServerScriptService
 - **Description:** Handles player growth when they squash other players
+
+### SpeedTransformationHandler
+#### SpeedTransformationHandler
+- **Name:** SpeedTransformationHandler
+- **Type:** Script
+- **Location:** ServerScriptService
+- **Description:** Handles 2x speed purchases and character speed modification
+
+### GiantTransformationHandler
+#### GiantTransformationHandler
+- **Name:** GiantTransformationHandler
+- **Type:** Script
+- **Location:** ServerScriptService
+- **Description:** Handles giant transformation purchases and character scaling
 
 ## ReplicatedStorage
 
@@ -83,13 +104,6 @@ return [[
 - **Type:** LocalScript
 - **Location:** StarterGui
 - **Description:** Manages the top bar UI layout including size display and purchase buttons
-
-### ButtonStyleHandler
-#### ButtonStyleHandler
-- **Name:** ButtonStyleHandler
-- **Type:** LocalScript
-- **Location:** StarterGui
-- **Description:** Styles all buttons in the PlayerGui with consistent formatting
 
 
 ]]

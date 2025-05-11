@@ -142,11 +142,15 @@ local function init()
     
     -- Set up button click handlers (placeholder for now)
     giantButton.MouseButton1Click:Connect(function()
-        print("BE GIANT button clicked - Purchase functionality to be implemented")
+        if _G.PurchaseModals and _G.PurchaseModals.giant then
+            _G.PurchaseModals.giant.show()
+        end
     end)
     
     speedButton.MouseButton1Click:Connect(function()
-        print("2X SPEED button clicked - Purchase functionality to be implemented")
+        if _G.PurchaseModals and _G.PurchaseModals.speed then
+            _G.PurchaseModals.speed.show()
+        end
     end)
     
     -- Parent the ScreenGui

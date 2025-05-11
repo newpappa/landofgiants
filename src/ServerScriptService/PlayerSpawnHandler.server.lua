@@ -27,6 +27,12 @@ local function handleCharacterSpawn(player, character)
     
     -- Then apply physical scaling
     character:ScaleTo(sizeData.scale)
+    
+    -- Log initial walk speed
+    local humanoid = character:WaitForChild("Humanoid")
+    if humanoid then
+        print("PlayerSpawnHandler: Initial walk speed for", player.Name, "is", humanoid.WalkSpeed)
+    end
 end
 
 -- Set up player handlers

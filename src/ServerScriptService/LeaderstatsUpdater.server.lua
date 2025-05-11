@@ -2,14 +2,16 @@
 Name: LeaderstatsUpdater
 Type: Script
 Location: ServerScriptService
-Description: Creates and updates leaderstats for player size tracking
+Description: Creates and updates leaderstats for player size and squash tracking
 Interacts With:
     - SizeStateMachine: Gets player visual height values
     - PlayerSpawnHandler: Waits for initial size to be set
+    - SquashTracker: Updates squash counts
 --]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local SizeStateMachine = require(ReplicatedStorage:WaitForChild("SizeStateMachine"))
 
 -- Function to setup leaderstats for a player
@@ -25,7 +27,14 @@ local function setupLeaderstats(player)
     sizeValue.Name = "Size"
     sizeValue.Value = 5 -- Start at minimum height (5 feet)
     sizeValue.Parent = leaderstats
-    print("LeaderstatsUpdater: Created Size value for", player.Name, "starting at 5 feet")
+
+    -- Create the Squashes value
+    local squashesValue = Instance.new("IntValue")
+    squashesValue.Name = "Squashes"
+    squashesValue.Value = 0
+    squashesValue.Parent = leaderstats
+    
+    print("LeaderstatsUpdater: Created Size and Squashes values for", player.Name)
 end
 
 -- Function to update size value
@@ -56,12 +65,32 @@ end
 Players.PlayerAdded:Connect(function(player)
     print("LeaderstatsUpdater: New player joined:", player.Name)
     setupLeaderstats(player)
-    -- We no longer try to get the initial size here
-    -- It will be set when PlayerSpawnHandler sets the first size
 end)
 
 -- Listen for size changes from SizeStateMachine
 SizeStateMachine.OnSizeChanged.Event:Connect(function(player, newScale, newVisualHeight)
     print("LeaderstatsUpdater: Received size change event for", player.Name, "new visual height:", newVisualHeight, "feet")
     updateSizeValue(player)
+end)
+
+-- Listen for squash updates from SquashTracker
+local SquashTracker = ServerScriptService:WaitForChild("SquashTracker")
+local SquashCountChanged = SquashTracker:WaitForChild("SquashCountChanged")
+
+SquashCountChanged.Event:Connect(function(player, action)
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if not leaderstats then return end
+    
+    local squashesValue = leaderstats:FindFirstChild("Squashes")
+    if squashesValue then
+        if action == 0 then
+            -- Reset squashes
+            squashesValue.Value = 0
+            print("LeaderstatsUpdater: Reset Squashes for", player.Name)
+        else
+            -- Increment squashes
+            squashesValue.Value = squashesValue.Value + 1
+            print("LeaderstatsUpdater: Updated Squashes for", player.Name, "to", squashesValue.Value)
+        end
+    end
 end) 

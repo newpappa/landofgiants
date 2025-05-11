@@ -81,7 +81,8 @@ local function handleFootToHeadCollision(footPart, headPart)
     if not humanoid then return end
     
     -- Fire the squash event before killing the player
-    SquashEvent:FireAllClients(bottomPlayer, topPlayer)
+    SquashEvent:FireAllClients(bottomPlayer, topPlayer) -- For client effects
+    SquashEvent:FireServer(bottomPlayer, topPlayer) -- For tracking squashes
     
     -- Kill the squashed player
     humanoid.Health = 0
