@@ -70,7 +70,7 @@ function SoundRegistry.playSquashSound(parent)
     end)
     
     -- Add error handling using the correct event
-    sound.Failed:Connect(function()
+    sound.LoadingFailed:Connect(function()
         warn("SoundRegistry: Sound failed to load")
         sound:Destroy()
     end)

@@ -1,11 +1,11 @@
-- [ ] Lower probability to spawn as giant
-- [ ] Exaggerate the height to 1000, but disproportionately so it’s slower to get bigger 
-- [ ] Cap random max height and be giant height to 2/3rd total so can still go up, allow player number to go up even when we cap giant size based on performance 
-- [ ] When you squash someone your size increase
+- [X] Lower probability to spawn as giant
+- [X] Exaggerate the height to 1000, but disproportionately so it’s slower to get bigger 
+- [x] Cap random max height and be giant height to 2/3rd total so can still go up, allow player number to go up even when we cap giant size based on performance 
+- [X] When you squash someone your size increase
 - [ ] Be Giant! - once - robux pay 
 - [ ] 2x Speed! - til death robux pay 
 - [ ] Premium users get 1.25x growth!
-- [ ] HUD with size value 
+- [x] HUD with size value 
 - [x] Torches in cave
 - [x] Thumbnail- bacon hairs,…
-- [ ] Phase 2 - Leaderboards - top size live, all time, top squishers live, all time
+- [x] Phase 2 - Leaderboards - top size live, all time, top squishers live, all time

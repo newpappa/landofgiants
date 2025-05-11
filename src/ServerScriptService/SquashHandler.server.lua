@@ -4,7 +4,7 @@ Type: Script
 Location: ServerScriptService
 Description: Handles player squash mechanics and collision detection
 Interacts With:
-  - PlayerSizeModule: Uses player size data for squash calculations
+  - PlayerSizeCalculator: Uses player size data for squash calculations
   - SquashEvent: Fires client events for squash effects
 --]]
 
@@ -30,7 +30,7 @@ end
 
 print("ReplicatedStorage found")
 
-local PlayerSizeModule = require(ReplicatedStorage:WaitForChild("PlayerSizeModule"))
+local PlayerSizeCalculator = require(ReplicatedStorage:WaitForChild("PlayerSizeCalculator"))
 
 print("Services and modules loaded")
 

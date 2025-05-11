@@ -2,32 +2,31 @@
 Name: PlayerSpawnHandler
 Type: Script
 Location: ServerScriptService
-Description: Handles player spawning and physical size scaling
+Description: Handles player spawning and initial size setup
 Interacts With:
-  - PlayerSizeModule: Gets spawn size calculations
-  - SizeStateMachine: Updates size state
+  - PlayerSizeCalculator: Gets spawn size calculations
+  - SizeStateMachine: Updates player sizes
 --]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local PlayerSizeModule = require(ReplicatedStorage:WaitForChild("PlayerSizeModule"))
+local PlayerSizeCalculator = require(ReplicatedStorage:WaitForChild("PlayerSizeCalculator"))
 local SizeStateMachine = require(ReplicatedStorage:WaitForChild("SizeStateMachine"))
 
 print("PlayerSpawnHandler: Starting up...")
 
 -- Handle character spawning and scaling
 local function handleCharacterSpawn(player, character)
-    -- Get random spawn size using non-linear distribution
-    local spawnSize = PlayerSizeModule.getRandomSpawnSize()
+    -- Get random spawn size
+    local sizeData = PlayerSizeCalculator.getRandomSpawnSize()
     
-    print("PlayerSpawnHandler: Spawning", player.Name, "at size", spawnSize)
+    print("PlayerSpawnHandler: Spawning", player.Name, "at size", sizeData.scale)
     
     -- Update size state first
-    SizeStateMachine:UpdatePlayerSize(player, spawnSize)
+    SizeStateMachine:UpdatePlayerSize(player, sizeData)
     
     -- Then apply physical scaling
-    character:ScaleTo(spawnSize)
+    character:ScaleTo(sizeData.scale)
 end
 
 -- Set up player handlers

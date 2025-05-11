@@ -2,53 +2,38 @@
   "name": "Land of Giants",
   "tree": {
     "$className": "DataModel",
-    "$ignoreUnknownInstances": true,
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
-      "$path": "src/ReplicatedStorage",
-      "$ignoreUnknownInstances": true
+      "$path": "src/ReplicatedStorage"
     },
     "ServerStorage": {
       "$className": "ServerStorage",
-      "$ignoreUnknownInstances": true,
       "GeneratedDocs": {
         "$className": "Folder",
-        "$properties": {
-          "scripts": {
-            "$path": "src/server/GeneratedDocs/scripts.lua",
-            "$sync": "studio"
-          }
-        },
-        "$ignoreUnknownInstances": true
+        "$path": "src/ServerStorage/GeneratedDocs"
       }
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "$path": "src/ServerScriptService",
-      "$ignoreUnknownInstances": true
+      "$path": "src/ServerScriptService"
     },
     "StarterGui": {
       "$className": "StarterGui",
-      "$path": "src/StarterGui",
-      "$ignoreUnknownInstances": true
+      "$path": "src/StarterGui"
     },
     "StarterPlayer": {
       "$className": "StarterPlayer",
-      "$ignoreUnknownInstances": true,
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "$path": "src/StarterPlayer/StarterPlayerScripts",
-        "$ignoreUnknownInstances": true
+        "$path": "src/StarterPlayer/StarterPlayerScripts"
       }
     },
     "ReplicatedFirst": {
       "$className": "ReplicatedFirst",
-      "$path": "src/ReplicatedFirst",
-      "$ignoreUnknownInstances": true
+      "$path": "src/ReplicatedFirst"
     },
     "Lighting": {
-      "$className": "Lighting",
-      "$ignoreUnknownInstances": true
+      "$className": "Lighting"
     }
   }
 }
