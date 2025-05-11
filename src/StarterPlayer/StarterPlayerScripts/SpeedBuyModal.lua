@@ -71,7 +71,7 @@ function SpeedBuyModal.new()
     description.Size = UDim2.new(0.9, 0, 0, 60)
     description.Position = UDim2.new(0.05, 0, 0.2, 0)
     description.BackgroundTransparency = 1
-    description.Text = "Move twice as fast as normal players!\nOne-time purchase of 19 Robux."
+    description.Text = "Move twice as fast as normal players! Lasts until squished!\nOne-time purchase of 19 Robux."
     description.TextColor3 = Color3.fromRGB(200, 200, 200)
     description.TextSize = 16
     description.Font = Enum.Font.Gotham

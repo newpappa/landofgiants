@@ -71,7 +71,7 @@ function GiantBuyModal.new()
     description.Size = UDim2.new(0.9, 0, 0, 60)
     description.Position = UDim2.new(0.05, 0, 0.2, 0)
     description.BackgroundTransparency = 1
-    description.Text = "Tower over other players with giant size!\nOne-time purchase of 49 Robux."
+    description.Text = "Tower over other players with giant size! Lasts until squished!\nOne-time purchase of 49 Robux."
     description.TextColor3 = Color3.fromRGB(200, 200, 200)
     description.TextSize = 16
     description.Font = Enum.Font.Gotham

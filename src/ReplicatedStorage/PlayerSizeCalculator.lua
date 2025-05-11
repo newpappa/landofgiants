@@ -41,9 +41,9 @@ function PlayerSizeCalculator.getRandomSpawnSize()
     local randomValue = math.random()
     print("Random Value Generated:", randomValue)
     
-    local power = 3 -- Higher power = more bias towards smaller sizes
+    local power = 4 -- Higher power = more bias towards smaller sizes (increased from 3)
     local normalizedSize = math.pow(randomValue, power)
-    print("After Power of 3:", normalizedSize)
+    print("After Power of 4:", normalizedSize) -- Updated comment to reflect new power
     
     -- Map to our desired range (MIN_SIZE to SPAWN_MAX_SIZE)
     local size = PlayerSizeCalculator.MIN_SIZE + 
@@ -72,10 +72,10 @@ function PlayerSizeCalculator.calculateSquashGrowth(currentSize)
         (PlayerSizeCalculator.VISUAL_MAX_HEIGHT - PlayerSizeCalculator.VISUAL_MIN_HEIGHT)
     print("Normalized Height:", normalizedHeight)
     
-    -- Reverse the exponential curve
-    -- Original: y = (4^x - 1) / 3
-    -- Reverse: x = log4(3y + 1)
-    local normalizedScale = math.log(3 * normalizedHeight + 1, 4)
+    -- Reverse the inverse exponential curve
+    -- Original: y = 1 - 4^(-x)
+    -- Reverse: x = -log4(1 - y)
+    local normalizedScale = -math.log(1 - normalizedHeight, 4)
     print("Reversed Scale:", normalizedScale)
     
     -- Map back to actual scale
@@ -98,12 +98,11 @@ function PlayerSizeCalculator.getVisualHeight(scale)
         (PlayerSizeCalculator.MAX_SIZE - PlayerSizeCalculator.MIN_SIZE)
     print("Normalized Scale:", normalizedScale)
     
-    -- Use a single exponential curve for the entire range
-    -- Base of 4 gives a good curve: slower at start, faster at end
-    -- The formula is: y = (4^x - 1) / 3
-    -- Where 3 is (4^1 - 1) to normalize the range to 0-1
-    local curvedScale = (math.pow(4, normalizedScale) - 1) / 3
-    print("Exponential Curved Scale:", curvedScale)
+    -- Use inverse exponential curve for better progression
+    -- Fast growth at small sizes, slowing down at larger sizes
+    -- Formula: y = 1 - 4^(-x)
+    local curvedScale = 1 - math.pow(4, -normalizedScale)
+    print("Inverse Exponential Curved Scale:", curvedScale)
     
     -- Map to our visual height range
     local visualHeight = PlayerSizeCalculator.VISUAL_MIN_HEIGHT + 

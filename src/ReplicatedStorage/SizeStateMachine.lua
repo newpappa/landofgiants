@@ -23,7 +23,7 @@ if not SizeReplicationEvent then
 end
 
 local SizeStateMachine = {
-    _playerData = {}, -- Store player size data {scale = number, visualHeight = number}
+    _playerData = {}, -- Store player size data {scale = number, visualHeight = number, bonusHeight = number}
     OnSizeChanged = Instance.new("BindableEvent")
 }
 
@@ -38,9 +38,15 @@ end
 -- Get current visual height for a player
 function SizeStateMachine:GetPlayerVisualHeight(player)
     local data = self._playerData[player.UserId]
-    local height = data and data.visualHeight or nil
-    print("SizeStateMachine: GetPlayerVisualHeight called for", player.Name, "returning:", height)
-    return height
+    if not data then return nil end
+    
+    local baseHeight = data.visualHeight or 0
+    local bonusHeight = data.bonusHeight or 0
+    local totalHeight = baseHeight + bonusHeight
+    
+    print("SizeStateMachine: GetPlayerVisualHeight called for", player.Name, 
+          "base:", baseHeight, "bonus:", bonusHeight, "total:", totalHeight)
+    return totalHeight
 end
 
 -- Update size for a player
@@ -48,21 +54,41 @@ function SizeStateMachine:UpdatePlayerSize(player, sizeData)
     print("SizeStateMachine: Attempting to update size for", player.Name, "to scale:", sizeData.scale, "visual height:", sizeData.visualHeight)
     
     if PlayerSizeCalculator.isValidSize(sizeData.scale) then
-        -- Store both values directly
-        self._playerData[player.UserId] = {
-            scale = sizeData.scale,
-            visualHeight = sizeData.visualHeight
-        }
+        local currentData = self._playerData[player.UserId] or {}
+        local currentVisualHeight = currentData.visualHeight or 0
+        local currentBonusHeight = currentData.bonusHeight or 0
         
-        -- Fire event with both values
-        self.OnSizeChanged:Fire(player, sizeData.scale, sizeData.visualHeight)
+        -- If we're at or above 1000 feet, cap the scale but allow visual height to increase
+        if currentVisualHeight >= 1000 then
+            -- Keep scale at whatever gave us 1000 feet
+            local newBonusHeight = currentBonusHeight + (sizeData.visualHeight - currentVisualHeight)
+            
+            self._playerData[player.UserId] = {
+                scale = currentData.scale, -- Keep existing scale
+                visualHeight = currentVisualHeight, -- Keep base visual height
+                bonusHeight = newBonusHeight -- Add to bonus height
+            }
+        else
+            -- Normal update below 1000 feet
+            self._playerData[player.UserId] = {
+                scale = sizeData.scale,
+                visualHeight = sizeData.visualHeight,
+                bonusHeight = currentBonusHeight
+            }
+        end
+        
+        local data = self._playerData[player.UserId]
+        local totalHeight = data.visualHeight + data.bonusHeight
+        
+        -- Fire event with total height
+        self.OnSizeChanged:Fire(player, data.scale, totalHeight)
         
         -- If we're on the server, replicate to clients
         if RunService:IsServer() then
-            -- Send both scale and visual height
             SizeReplicationEvent:FireAllClients(player.UserId, {
-                scale = sizeData.scale,
-                visualHeight = sizeData.visualHeight
+                scale = data.scale,
+                visualHeight = data.visualHeight,
+                bonusHeight = data.bonusHeight
             })
         end
         
@@ -92,14 +118,13 @@ if RunService:IsClient() then
         local player = Players:GetPlayerByUserId(userId)
         if player then
             print("SizeStateMachine: Received size update from server for", player.Name, 
-                  "scale:", sizeData.scale, "visual height:", sizeData.visualHeight)
-            -- Store the received data directly
-            SizeStateMachine._playerData[userId] = {
-                scale = sizeData.scale,
-                visualHeight = sizeData.visualHeight
-            }
-            -- Fire the change event
-            SizeStateMachine.OnSizeChanged:Fire(player, sizeData.scale, sizeData.visualHeight)
+                  "scale:", sizeData.scale, "visual height:", sizeData.visualHeight,
+                  "bonus height:", sizeData.bonusHeight)
+            -- Store the complete data structure
+            SizeStateMachine._playerData[userId] = sizeData
+            -- Fire the change event with total height
+            local totalHeight = sizeData.visualHeight + (sizeData.bonusHeight or 0)
+            SizeStateMachine.OnSizeChanged:Fire(player, sizeData.scale, totalHeight)
         end
     end)
 end
