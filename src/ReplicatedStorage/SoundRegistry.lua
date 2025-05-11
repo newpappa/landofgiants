@@ -1,3 +1,12 @@
+--[[
+Name: SoundRegistry
+Type: ModuleScript
+Location: ReplicatedStorage
+Description: Manages and plays sound effects for squash events
+Interacts With:
+  - SquashEffectHandler: Provides sound playback for squash events
+--]]
+
 local SoundRegistry = {}
 
 print("SoundRegistry: Module loading...")
@@ -29,21 +38,40 @@ function SoundRegistry.playSquashSound(parent)
     sound.SoundId = SoundRegistry.SquashSounds[selectedSoundIndex]
     sound.Volume = 1
     sound.PlayOnRemove = false
+    
+    -- Add additional debugging properties
+    sound.Name = "SquashSound"
+    sound.RollOffMode = Enum.RollOffMode.InverseTapered
+    sound.RollOffMaxDistance = 100
+    sound.RollOffMinDistance = 5
+    sound.EmitterSize = 10
+    
     sound.Parent = parent
     
     print("SoundRegistry: Created sound instance")
     print("SoundRegistry: Using sound ID", sound.SoundId, "(index", selectedSoundIndex, ")")
     print("SoundRegistry: Sound parent is", sound.Parent:GetFullName())
     
-    -- Connect to loading events
+    -- Connect to all relevant events for debugging
     sound.Loaded:Connect(function()
         print("SoundRegistry: Sound loaded successfully")
+        print("SoundRegistry: Sound length is", sound.TimeLength, "seconds")
+        print("SoundRegistry: Playing sound...")
         sound:Play()
     end)
     
-    -- Clean up after playing
+    sound.Played:Connect(function()
+        print("SoundRegistry: Sound started playing")
+    end)
+    
     sound.Ended:Connect(function()
         print("SoundRegistry: Sound finished playing")
+        sound:Destroy()
+    end)
+    
+    -- Add error handling using the correct event
+    sound.Failed:Connect(function()
+        warn("SoundRegistry: Sound failed to load")
         sound:Destroy()
     end)
 end

@@ -1,3 +1,12 @@
+--[[
+Name: ButtonStyleHandler
+Type: LocalScript
+Location: StarterGui
+Description: Styles all buttons in the PlayerGui with consistent formatting
+Interacts With:
+  - ButtonStyler: Uses styling utilities to format buttons
+--]]
+
 local ButtonStyler = require(game:GetService("ReplicatedStorage"):WaitForChild("ButtonStyler"))
 local Players = game:GetService("Players")
 

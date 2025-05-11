@@ -1,3 +1,12 @@
+--[[
+Name: ButtonStyler
+Type: ModuleScript
+Location: ReplicatedStorage
+Description: Provides utility functions for styling buttons and text labels with consistent formatting
+Interacts With:
+  - ButtonStyleHandler: Provides styling functions for GUI elements
+--]]
+
 local ButtonStyler = {}
 
 -- Function to style a button with white text and black borders

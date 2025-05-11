@@ -1,3 +1,14 @@
+--[[
+Name: SquashEffectHandler
+Type: LocalScript
+Location: StarterPlayer.StarterPlayerScripts
+Description: Handles visual and audio effects when a player gets squashed
+Interacts With:
+  - SquashEffect: Uses effect configurations
+  - SoundRegistry: Plays squash sound effects
+  - SquashEvent: Listens for squash events from server
+--]]
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
@@ -10,7 +21,8 @@ local SoundRegistry = require(ReplicatedStorage:WaitForChild("SoundRegistry"))
 local SquashEvent = ReplicatedStorage:WaitForChild("SquashEvent")
 print("SquashEffectHandler: Found SquashEvent")
 
--- Function to create and play particle effect
+-- Temporarily disabled particle effect
+--[[
 local function createSquashParticles(character)
     print("Creating particles for character:", character.Name)
     local rootPart = character:FindFirstChild("HumanoidRootPart")
@@ -39,8 +51,10 @@ local function createSquashParticles(character)
         print("Particle emitter cleaned up")
     end)
 end
+]]
 
--- Function to play squash animation
+-- Temporarily disabled custom animation
+--[[
 local function playSquashAnimation(character)
     print("Playing animation for character:", character.Name)
     if not character then return end
@@ -74,6 +88,7 @@ local function playSquashAnimation(character)
         warn("Failed to play animation:", err)
     end
 end
+]]
 
 -- Handle squash event
 print("Setting up SquashEvent handler...")
@@ -86,18 +101,24 @@ SquashEvent.OnClientEvent:Connect(function(squashedPlayer, biggerPlayer)
         return 
     end
     
-    -- Play visual effects
-    task.spawn(function()
-        playSquashAnimation(character)
-        createSquashParticles(character)
-    end)
-    
-    -- Play sound effect
+    -- Play sound effect with additional debugging
     task.spawn(function()
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if rootPart then
-            print("Playing squash sound...")
+            print("About to play squash sound...")
+            print("RootPart position:", rootPart.Position)
+            
+            -- Add a visible indicator that we're trying to play sound
+            local highlight = Instance.new("Highlight")
+            highlight.FillColor = Color3.fromRGB(255, 0, 0)
+            highlight.Parent = rootPart
+            
             SoundRegistry.playSquashSound(rootPart)
+            
+            -- Remove highlight after 1 second
+            task.delay(1, function()
+                highlight:Destroy()
+            end)
         else
             print("No RootPart found for sound")
         end

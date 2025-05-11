@@ -1,3 +1,12 @@
+--[[
+Name: SquashEffect
+Type: ModuleScript
+Location: ReplicatedStorage
+Description: Defines visual and animation configurations for squash effects
+Interacts With:
+  - SquashEffectHandler: Uses these configurations for visual effects
+--]]
+
 local SquashEffect = {
     -- Animation parameters
     SQUASH_ANIMATION_ID = "rbxassetid://393916540", -- Death animation
