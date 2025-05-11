@@ -96,7 +96,8 @@ local function handleFootToHeadCollision(footPart, headPart)
     -- Kill the player and force character removal to ensure clean respawn
     task.spawn(function()
         humanoid.Health = 0
-        task.wait(0.1) -- Short delay to ensure death processing
+        -- Increased delay to ensure longest sound (3.23s) plays fully plus buffer
+        task.wait(3.5) -- Changed from 2.0 to 3.5 seconds
         if bottomChar and bottomChar.Parent then
             bottomChar:Destroy()
         end

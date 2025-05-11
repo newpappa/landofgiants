@@ -21,6 +21,15 @@ local SoundRegistry = require(ReplicatedStorage:WaitForChild("SoundRegistry"))
 local SquashEvent = ReplicatedStorage:WaitForChild("SquashEvent")
 print("SquashEffectHandler: Found SquashEvent")
 
+-- Constants for sound distances
+local PARTICIPANT_SOUND_DISTANCE = 10000 -- Much larger range for participants
+local NEARBY_SOUND_DISTANCE = 100 -- Original range for spectators
+
+-- Function to determine if player is a participant
+local function isParticipant(localPlayer, squashedPlayer, squashingPlayer)
+    return localPlayer == squashedPlayer or localPlayer == squashingPlayer
+end
+
 -- Temporarily disabled particle effect
 --[[
 local function createSquashParticles(character)
@@ -92,7 +101,7 @@ end
 
 -- Handle squash event
 print("Setting up SquashEvent handler...")
-SquashEvent.OnClientEvent:Connect(function(squashedPlayer, biggerPlayer)
+SquashEvent.OnClientEvent:Connect(function(squashedPlayer, squashingPlayer)
     print("SquashEvent received for player:", squashedPlayer.Name)
     
     local character = squashedPlayer.Character
@@ -119,11 +128,20 @@ SquashEvent.OnClientEvent:Connect(function(squashedPlayer, biggerPlayer)
                 local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if localRoot then
                     local distance = (localRoot.Position - rootPart.Position).Magnitude
-                    if distance <= 100 then -- 100 studs listening radius
-                        print("Local player within range, playing sound")
+                    local maxDistance = isParticipant(localPlayer, squashedPlayer, squashingPlayer) 
+                        and PARTICIPANT_SOUND_DISTANCE 
+                        or NEARBY_SOUND_DISTANCE
+                    
+                    if distance <= maxDistance then
+                        print(string.format("Playing sound for %s (distance: %.1f, max allowed: %d)", 
+                            isParticipant(localPlayer, squashedPlayer, squashingPlayer) and "participant" or "spectator",
+                            distance,
+                            maxDistance))
                         SoundRegistry.playSquashSound(localRoot)
                     else
-                        print("Local player too far to hear sound, distance:", distance)
+                        print(string.format("Too far to hear sound (distance: %.1f, max allowed: %d)", 
+                            distance,
+                            maxDistance))
                     end
                 end
             end
