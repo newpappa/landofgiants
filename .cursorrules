@@ -1,0 +1,19 @@
+# Script Documentation Rules
+SCRIPT_HEADER_FORMAT: |
+  All Lua scripts must include a header comment block:
+  --[[
+  Name: ScriptName
+  Type: Script|ModuleScript|LocalScript
+  Location: Service.Folder.SubFolder
+  Description: Brief description of script's purpose
+  Interacts With: (Optional)
+    - OtherScript: Description of interaction
+  --]]
+
+# Documentation Generation
+DOCS_GENERATION: |
+  Script documentation is auto-generated:
+  1. All scripts must follow SCRIPT_HEADER_FORMAT
+  2. Documentation is generated via GenerateScriptsDocs plugin
+  3. Generated docs are saved to ServerStorage/GeneratedDocs/scripts.lua
+  4. Run plugin after adding/modifying script headers

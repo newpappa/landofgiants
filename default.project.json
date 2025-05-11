@@ -8,6 +8,20 @@
       "$path": "src/ReplicatedStorage",
       "$ignoreUnknownInstances": true
     },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "$ignoreUnknownInstances": true,
+      "GeneratedDocs": {
+        "$className": "Folder",
+        "$properties": {
+          "scripts": {
+            "$path": "src/server/GeneratedDocs/scripts.lua",
+            "$sync": "studio"
+          }
+        },
+        "$ignoreUnknownInstances": true
+      }
+    },
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "$path": "src/ServerScriptService",
