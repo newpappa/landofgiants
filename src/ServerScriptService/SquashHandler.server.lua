@@ -52,6 +52,10 @@ local ServerSquashEvent = Instance.new("BindableEvent")
 ServerSquashEvent.Name = "ServerSquashEvent"
 ServerSquashEvent.Parent = script
 
+-- Add cooldown tracking
+local recentlySquashed = {} -- Table to track recently squashed players
+local SQUASH_COOLDOWN = 3.5 -- Match the character removal delay
+
 -- Get the player that owns this part's character
 local function getPlayerFromPart(part)
     local character = part:FindFirstAncestorOfClass("Model")
@@ -76,6 +80,11 @@ local function handleFootToHeadCollision(footPart, headPart)
     local bottomChar = bottomPlayer.Character
     if not bottomChar then return end
     
+    -- Check if player was recently squashed
+    if recentlySquashed[bottomPlayer.UserId] then
+        return -- Skip if player was recently squashed
+    end
+    
     -- Check if the character has a SpawnTime value
     local spawnTime = bottomChar:GetAttribute("SpawnTime")
     if spawnTime and (os.time() - spawnTime) < 2 then -- 2 second protection
@@ -86,6 +95,9 @@ local function handleFootToHeadCollision(footPart, headPart)
     
     local humanoid = bottomChar:FindFirstChild("Humanoid")
     if not humanoid then return end
+    
+    -- Mark player as recently squashed
+    recentlySquashed[bottomPlayer.UserId] = true
     
     -- First notify all clients about the squash for effects
     SquashEvent:FireAllClients(bottomPlayer, topPlayer)
@@ -101,6 +113,8 @@ local function handleFootToHeadCollision(footPart, headPart)
         if bottomChar and bottomChar.Parent then
             bottomChar:Destroy()
         end
+        -- Clear the recently squashed status after the cooldown
+        recentlySquashed[bottomPlayer.UserId] = nil
     end)
 end
 
@@ -132,7 +146,11 @@ end
 
 -- Handle new players
 Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(setupCharacterCollision)
+    player.CharacterAdded:Connect(function(character)
+        -- Clear any existing cooldown when character spawns
+        recentlySquashed[player.UserId] = nil
+        setupCharacterCollision(character)
+    end)
 end)
 
 -- Handle existing players

@@ -23,6 +23,9 @@ local SquashCountChanged = Instance.new("BindableEvent")
 SquashCountChanged.Name = "SquashCountChanged"
 SquashCountChanged.Parent = script
 
+-- Track active squash processing
+local processingSquash = {}
+
 -- Handle player spawns to reset squash count
 local function handlePlayerAdded(player)
     player.CharacterAdded:Connect(function()
@@ -45,11 +48,26 @@ local SquashHandler = ServerScriptService:WaitForChild("SquashHandler")
 local ServerSquashEvent = SquashHandler:WaitForChild("ServerSquashEvent")
 
 ServerSquashEvent.Event:Connect(function(squashedPlayer, squashingPlayer)
+    -- Validate players
+    if not squashedPlayer or not squashingPlayer then return end
+    
+    -- Create a unique key for this squash event
+    local squashKey = squashedPlayer.UserId .. "_" .. os.time()
+    
+    -- Check if we're already processing this squash
+    if processingSquash[squashKey] then return end
+    
+    -- Mark this squash as being processed
+    processingSquash[squashKey] = true
+    
     -- Increment squash count for the squashing player
-    if squashingPlayer then
-        print("SquashTracker: Incrementing squash count for", squashingPlayer.Name)
-        SquashCountChanged:Fire(squashingPlayer, 1) -- 1 indicates increment
-    end
+    print("SquashTracker: Incrementing squash count for", squashingPlayer.Name)
+    SquashCountChanged:Fire(squashingPlayer, 1) -- 1 indicates increment
+    
+    -- Clear the processing flag after a short delay
+    task.delay(3.5, function()
+        processingSquash[squashKey] = nil
+    end)
 end)
 
 SquashCountChanged.Event:Connect(function(player, action)

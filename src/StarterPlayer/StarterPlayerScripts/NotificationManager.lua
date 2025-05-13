@@ -32,6 +32,15 @@ local NOTIFICATION_STYLES = {
         cornerRadius = UDim.new(0.3, 0),
         textStrokeColor = Color3.fromRGB(0, 0, 0),
         textStrokeTransparency = 0
+    },
+    size = {
+        backgroundColor = Color3.fromRGB(255, 255, 0), -- Yellow
+        textColor = Color3.fromRGB(255, 255, 255),
+        strokeColor = Color3.fromRGB(255, 255, 255),
+        strokeThickness = 4,
+        cornerRadius = UDim.new(0.3, 0),
+        textStrokeColor = Color3.fromRGB(0, 0, 0),
+        textStrokeTransparency = 0
     }
 }
 
@@ -48,6 +57,7 @@ function NotificationManager.showNotification(message, style)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NotificationGui"
     screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
     local frame = Instance.new("Frame")
     frame.Name = "NotificationFrame"
@@ -55,6 +65,7 @@ function NotificationManager.showNotification(message, style)
     frame.Position = UDim2.new(0.5, -150, 0.5, -40)
     frame.BackgroundColor3 = NOTIFICATION_STYLES[style].backgroundColor
     frame.BackgroundTransparency = 0
+    frame.ZIndex = 10
     frame.Parent = screenGui
     
     -- Add corner rounding
@@ -71,7 +82,8 @@ function NotificationManager.showNotification(message, style)
     -- Add text
     local text = Instance.new("TextLabel")
     text.Name = "Message"
-    text.Size = UDim2.new(1, 0, 1, 0)
+    text.Size = UDim2.new(1, -20, 1, -20)
+    text.Position = UDim2.new(0, 10, 0, 10)
     text.BackgroundTransparency = 1
     text.Text = message
     text.TextColor3 = NOTIFICATION_STYLES[style].textColor
@@ -79,11 +91,17 @@ function NotificationManager.showNotification(message, style)
     text.TextStrokeTransparency = NOTIFICATION_STYLES[style].textStrokeTransparency
     text.Font = Enum.Font.GothamBold
     text.TextSize = 24
+    text.TextWrapped = true
+    text.TextXAlignment = Enum.TextXAlignment.Center
+    text.TextYAlignment = Enum.TextYAlignment.Center
+    text.ZIndex = 11
     text.Parent = frame
     
     -- Initial state
     frame.Size = UDim2.new(0, 300 * 0.8, 0, 80 * 0.8)
     frame.Position = UDim2.new(0.5, -150 * 0.8, 0.5, -40 * 0.8)
+    frame.BackgroundTransparency = 0
+    text.TextTransparency = 0
     
     -- Show animation
     local showTween = TweenService:Create(frame, TweenInfo.new(SHOW_DURATION, Enum.EasingStyle.Back), {
@@ -108,6 +126,10 @@ function NotificationManager.showNotification(message, style)
         BackgroundTransparency = 1
     })
     
+    local textHideTween = TweenService:Create(text, TweenInfo.new(HIDE_DURATION/2, Enum.EasingStyle.Back), {
+        TextTransparency = 1
+    })
+    
     -- Play animations sequence
     screenGui.Parent = playerGui
     
@@ -119,6 +141,7 @@ function NotificationManager.showNotification(message, style)
         popOutTween:Play()
         popOutTween.Completed:Connect(function()
             hideTween:Play()
+            textHideTween:Play()
             hideTween.Completed:Connect(function()
                 screenGui:Destroy()
             end)

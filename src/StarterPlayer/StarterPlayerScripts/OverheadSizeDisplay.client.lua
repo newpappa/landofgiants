@@ -27,7 +27,7 @@ local function createOverheadDisplay(character)
     print("OverheadSizeDisplay: Creating display for character:", character.Name)
     
     -- Wait for head to exist first
-    local head = character:WaitForChild("Head", 5)
+    local head = character:WaitForChild("Head", 8)
     if not head then 
         warn("OverheadSizeDisplay: Failed to find Head for character:", character.Name)
         return nil
@@ -112,20 +112,8 @@ local function onPlayerAdded(otherPlayer)
             return 
         end
         
-        print("OverheadSizeDisplay: Creating display for", otherPlayer.Name)
-        
-        -- Create new display
-        local display = createOverheadDisplay(character)
-        if display then
-            overheadDisplays[otherPlayer] = display
-            
-            -- Initial update
-            task.delay(0.1, function() -- Small delay to ensure size is set
-                updateDisplay(otherPlayer, display)
-            end)
-        else
-            warn("OverheadSizeDisplay: Failed to create display for", otherPlayer.Name)
-        end
+        print("OverheadSizeDisplay: Character loaded for", otherPlayer.Name)
+        -- We'll create the display when size data arrives instead of here
     end
     
     if otherPlayer.Character then
@@ -137,11 +125,21 @@ end
 -- Handle size changes
 SizeStateMachine.OnSizeChanged.Event:Connect(function(changedPlayer, newScale, newVisualHeight)
     print("OverheadSizeDisplay: Size changed for", changedPlayer.Name, "to scale:", newScale)
-    local display = overheadDisplays[changedPlayer]
-    if display then
-        updateDisplay(changedPlayer, display)
+    
+    -- If no display exists yet, create it
+    if not overheadDisplays[changedPlayer] and changedPlayer.Character then
+        print("OverheadSizeDisplay: Creating new display due to size update for", changedPlayer.Name)
+        local display = createOverheadDisplay(changedPlayer.Character)
+        if display then
+            overheadDisplays[changedPlayer] = display
+            updateDisplay(changedPlayer, display)
+        end
     else
-        warn("OverheadSizeDisplay: No display found for size change of", changedPlayer.Name)
+        -- Update existing display
+        local display = overheadDisplays[changedPlayer]
+        if display then
+            updateDisplay(changedPlayer, display)
+        end
     end
 end)
 
