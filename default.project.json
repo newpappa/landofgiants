@@ -8,7 +8,11 @@
     },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
-      "$path": "src/ReplicatedStorage"
+      "$path": "src/ReplicatedStorage",
+      "Models": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true
+      }
     },
     "ServerStorage": {
       "$className": "ServerStorage",
