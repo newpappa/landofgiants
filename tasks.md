@@ -1,13 +1,60 @@
-Completed
-- [X] Lower probability to spawn as giant
-- [X] Exaggerate the height to 1000, but disproportionately so it’s slower to get bigger 
-- [x] Cap random max height and be giant height to 2/3rd total so can still go up, allow player number to go up even when we cap giant size based on performance 
-- [X] When you squash someone your size increase
-- [x] Be Giant! - once - robux pay 
-- [x] 2x Speed! - til death robux pay 
-- [x] HUD with size value 
-- [x] Torches in cave
-- [x] Thumbnail- bacon hairs,…
+# NPCs
+
+## Project Goal
+Create a multiplayer game where players must survive in a world filled with AI-controlled giants. The giants will wander around collecting orbs to grow larger, and when they detect players, they'll switch to chase mode and attempt to stomp them. Players must avoid the giants while trying to survive as long as possible.
+
+## Implementation Plan
+
+### 1. NPC Spawner System
+- **Tasks:**
+  - Convert NPCGiantManager to NPCSpawner
+    - Add random spawn point selection
+    - Implement spawn rate controls
+    - Add spawn limits and cooldowns
+
+### 2. Proximity Detection System
+- **Tasks:**
+  - Create ProximityDetector to handle:
+    - Player detection for chase behavior
+    - Orb detection for collection behavior
+    - Spatial partitioning for performance
+    - Detection ranges and priorities
+
+### 3. Movement & AI
+- **Tasks:**
+  - Create NPCPathfinding system
+    - Implement path calculation
+    - Add movement target management
+  - Create NPCMovement system
+    - Add collision avoidance
+    - Implement movement states
+  - Create OrbCollectionBehavior
+    - Add orb targeting logic
+    - Implement collection animations
+  - Create NPCAnimationController
+    - Add run animation for movement
+    - Add jump animation for obstacles
+    - Add stomp animation for attacks
+    - Sync animations with movement states
+
+### 4. Size Management System
+- **Tasks:**
+  - Adapt SizeStateMachine for NPCs
+    - Create NPC size tracking
+    - Handle size increases from:
+      - Orb collection
+      - Player squashing
+    - Implement size-based collision updates
+    - Handle size replication to clients
+
+### 5. Orb System Integration
+- **Tasks:**
+  - Modify OrbPickupManager to handle NPC collection
+    - Add NPC collection method
+    - Update orb respawn logic for NPC collection
+  - Integrate with existing systems
+    - Use OrbVisuals for collection effects
+    - Use SquashEffect for visual feedback
 
 Next up
 - [ ] Debug things on Roblox
