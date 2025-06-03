@@ -5,6 +5,7 @@ Location: ServerScriptService
 Description: Spawns a static giant NPC in front of the player at the same size
 --]]
 
+--[[ TEMPORARILY DISABLED
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
@@ -51,3 +52,6 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 print("NPCGiantManager: Initialized") 
+]]--
+
+print("NPCGiantManager: Disabled") 

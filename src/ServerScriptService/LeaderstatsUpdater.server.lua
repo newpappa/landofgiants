@@ -2,17 +2,23 @@
 Name: LeaderstatsUpdater
 Type: Script
 Location: ServerScriptService
-Description: Creates and updates leaderstats for player size and squash tracking
+Description: Creates and updates leaderstats for player size, squash tracking, and XP
 Interacts With:
     - SizeStateMachine: Gets player visual height values
     - PlayerSpawnHandler: Waits for initial size to be set
     - SquashTracker: Updates squash counts
+    - XPManager: Tracks player XP and levels
 --]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local SizeStateMachine = require(ReplicatedStorage:WaitForChild("SizeStateMachine"))
+local EventManager = require(ReplicatedStorage:WaitForChild("EventManager"))
+
+-- Initialize EventManager
+EventManager:Initialize()
+local XPUpdateRemote = EventManager:GetEvent("XPUpdate")
 
 -- Function to setup leaderstats for a player
 local function setupLeaderstats(player)
@@ -34,7 +40,28 @@ local function setupLeaderstats(player)
     squashesValue.Value = 0
     squashesValue.Parent = leaderstats
     
-    print("LeaderstatsUpdater: Created Size and Squashes values for", player.Name)
+    -- Create the XP value
+    local xpValue = Instance.new("IntValue")
+    xpValue.Name = "XP"
+    xpValue.Value = 0
+    xpValue.Parent = leaderstats
+    
+    -- Connect to XP value changes
+    xpValue.Changed:Connect(function(newValue)
+        print("LeaderstatsUpdater: XP changed for", player.Name, "to", newValue)
+        -- Get XP calculator to compute level info
+        local XPCalculator = require(ReplicatedStorage:WaitForChild("XPCalculator"))
+        local newLevel = XPCalculator:CalculateLevel(newValue)
+        local xpForNext = XPCalculator:XPForNextLevel(newValue)
+        
+        -- Update client
+        if XPUpdateRemote then
+            print("LeaderstatsUpdater: Firing XP update to client - XP:", newValue, "Level:", newLevel, "Next:", xpForNext)
+            XPUpdateRemote:FireClient(player, newValue, newLevel, xpForNext)
+        end
+    end)
+    
+    print("LeaderstatsUpdater: Created Size, Squashes, and XP values for", player.Name)
 end
 
 -- Function to update size value

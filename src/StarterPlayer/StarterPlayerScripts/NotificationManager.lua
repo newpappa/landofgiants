@@ -13,138 +13,117 @@ local Players = game:GetService("Players")
 
 local NotificationManager = {}
 
--- Style configurations matching TopBarManager
-local NOTIFICATION_STYLES = {
-    giant = {
-        backgroundColor = Color3.fromRGB(255, 105, 180), -- Pink
+-- Animation configurations
+local SLIDE_DURATION = 0.3
+local DISPLAY_DURATION = 2
+local FADE_DURATION = 0.2
+
+-- Notification styles
+local STYLES = {
+    default = {
+        width = 300,
+        height = 60,
+        backgroundColor = Color3.fromRGB(255, 255, 0),
         textColor = Color3.fromRGB(255, 255, 255),
-        strokeColor = Color3.fromRGB(255, 255, 255),
-        strokeThickness = 4,
-        cornerRadius = UDim.new(0.3, 0),
+        textSize = 24,
+        cornerRadius = UDim.new(0, 12),
+        padding = 16,
+        textStrokeTransparency = 0,
         textStrokeColor = Color3.fromRGB(0, 0, 0),
-        textStrokeTransparency = 0
+        displayDuration = 2
     },
-    speed = {
-        backgroundColor = Color3.fromRGB(50, 205, 50), -- Green
+    onboarding = {
+        width = 600, -- Twice as wide
+        height = 200, -- Tall enough for two lines
+        backgroundColor = Color3.fromRGB(0, 0, 0),
         textColor = Color3.fromRGB(255, 255, 255),
-        strokeColor = Color3.fromRGB(255, 255, 255),
-        strokeThickness = 4,
-        cornerRadius = UDim.new(0.3, 0),
-        textStrokeColor = Color3.fromRGB(0, 0, 0),
-        textStrokeTransparency = 0
-    },
-    size = {
-        backgroundColor = Color3.fromRGB(255, 255, 0), -- Yellow
-        textColor = Color3.fromRGB(255, 255, 255),
-        strokeColor = Color3.fromRGB(255, 255, 255),
-        strokeThickness = 4,
-        cornerRadius = UDim.new(0.3, 0),
-        textStrokeColor = Color3.fromRGB(0, 0, 0),
-        textStrokeTransparency = 0
+        textSize = 32, -- Larger text
+        cornerRadius = UDim.new(0, 20),
+        padding = 24,
+        textStrokeTransparency = 0,
+        textStrokeColor = Color3.fromRGB(100, 100, 100), -- Softer stroke
+        displayDuration = 4 -- Show longer
     }
 }
 
--- Animation configurations
-local SHOW_DURATION = 0.3
-local DISPLAY_DURATION = 2
-local HIDE_DURATION = 0.3
+-- Constants for positioning (matching TopBarManager)
+local TOP_BAR_OFFSET = 10 -- TopBarManager's initial offset
+local TOP_BAR_HEIGHT = 50 -- Matching TopBarManager's height
+local NOTIFICATION_SPACING = 20 -- Space between top bar and notification
 
 function NotificationManager.showNotification(message, style)
     local player = Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
     
+    -- Get style configuration
+    local styleConfig = STYLES[style or "default"]
+    
     -- Create notification UI
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "NotificationGui"
+    screenGui.Name = "ToastNotification"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
+    -- Main notification frame
     local frame = Instance.new("Frame")
-    frame.Name = "NotificationFrame"
-    frame.Size = UDim2.new(0, 300, 0, 80)
-    frame.Position = UDim2.new(0.5, -150, 0.5, -40)
-    frame.BackgroundColor3 = NOTIFICATION_STYLES[style].backgroundColor
+    frame.Name = "ToastFrame"
+    frame.Size = UDim2.new(0, styleConfig.width, 0, styleConfig.height)
+    frame.Position = UDim2.new(0.5, -styleConfig.width/2, 0, -styleConfig.height) -- Start above screen
+    frame.BackgroundColor3 = styleConfig.backgroundColor
     frame.BackgroundTransparency = 0
-    frame.ZIndex = 10
+    frame.ZIndex = 11
     frame.Parent = screenGui
     
     -- Add corner rounding
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = NOTIFICATION_STYLES[style].cornerRadius
+    corner.CornerRadius = styleConfig.cornerRadius
     corner.Parent = frame
-    
-    -- Add stroke
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = NOTIFICATION_STYLES[style].strokeColor
-    stroke.Thickness = NOTIFICATION_STYLES[style].strokeThickness
-    stroke.Parent = frame
     
     -- Add text
     local text = Instance.new("TextLabel")
     text.Name = "Message"
-    text.Size = UDim2.new(1, -20, 1, -20)
-    text.Position = UDim2.new(0, 10, 0, 10)
+    text.Size = UDim2.new(1, -styleConfig.padding * 2, 1, -styleConfig.padding * 2)
+    text.Position = UDim2.new(0, styleConfig.padding, 0, styleConfig.padding)
     text.BackgroundTransparency = 1
     text.Text = message
-    text.TextColor3 = NOTIFICATION_STYLES[style].textColor
-    text.TextStrokeColor3 = NOTIFICATION_STYLES[style].textStrokeColor
-    text.TextStrokeTransparency = NOTIFICATION_STYLES[style].textStrokeTransparency
+    text.TextColor3 = styleConfig.textColor
     text.Font = Enum.Font.GothamBold
-    text.TextSize = 24
+    text.TextSize = styleConfig.textSize
+    text.TextStrokeColor3 = styleConfig.textStrokeColor
+    text.TextStrokeTransparency = styleConfig.textStrokeTransparency
     text.TextWrapped = true
     text.TextXAlignment = Enum.TextXAlignment.Center
     text.TextYAlignment = Enum.TextYAlignment.Center
-    text.ZIndex = 11
+    text.ZIndex = 12
     text.Parent = frame
     
-    -- Initial state
-    frame.Size = UDim2.new(0, 300 * 0.8, 0, 80 * 0.8)
-    frame.Position = UDim2.new(0.5, -150 * 0.8, 0.5, -40 * 0.8)
-    frame.BackgroundTransparency = 0
-    text.TextTransparency = 0
-    
-    -- Show animation
-    local showTween = TweenService:Create(frame, TweenInfo.new(SHOW_DURATION, Enum.EasingStyle.Back), {
-        Size = UDim2.new(0, 300 * 1.1, 0, 80 * 1.1),
-        Position = UDim2.new(0.5, -150 * 1.1, 0.5, -40 * 1.1)
+    -- Show animation (slide down)
+    local targetY = TOP_BAR_OFFSET + TOP_BAR_HEIGHT + NOTIFICATION_SPACING
+    local slideInTween = TweenService:Create(frame, TweenInfo.new(SLIDE_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -styleConfig.width/2, 0, targetY)
     })
     
-    local normalTween = TweenService:Create(frame, TweenInfo.new(SHOW_DURATION, Enum.EasingStyle.Back), {
-        Size = UDim2.new(0, 300, 0, 80),
-        Position = UDim2.new(0.5, -150, 0.5, -40)
-    })
-    
-    -- Hide animation
-    local popOutTween = TweenService:Create(frame, TweenInfo.new(HIDE_DURATION/2, Enum.EasingStyle.Back), {
-        Size = UDim2.new(0, 300 * 1.1, 0, 80 * 1.1),
-        Position = UDim2.new(0.5, -150 * 1.1, 0.5, -40 * 1.1)
-    })
-    
-    local hideTween = TweenService:Create(frame, TweenInfo.new(HIDE_DURATION/2, Enum.EasingStyle.Back), {
-        Size = UDim2.new(0, 300 * 0.8, 0, 80 * 0.8),
-        Position = UDim2.new(0.5, -150 * 0.8, 0.5, -40 * 0.8),
+    -- Fade out animation
+    local fadeOutTween = TweenService:Create(frame, TweenInfo.new(FADE_DURATION, Enum.EasingStyle.Quad), {
         BackgroundTransparency = 1
     })
     
-    local textHideTween = TweenService:Create(text, TweenInfo.new(HIDE_DURATION/2, Enum.EasingStyle.Back), {
-        TextTransparency = 1
+    local textFadeOutTween = TweenService:Create(text, TweenInfo.new(FADE_DURATION, Enum.EasingStyle.Quad), {
+        TextTransparency = 1,
+        TextStrokeTransparency = 1
     })
     
-    -- Play animations sequence
+    -- Play animation sequence
     screenGui.Parent = playerGui
     
-    showTween:Play()
-    showTween.Completed:Connect(function()
-        normalTween:Play()
-        task.wait(DISPLAY_DURATION)
+    slideInTween:Play()
+    
+    task.delay(styleConfig.displayDuration, function()
+        fadeOutTween:Play()
+        textFadeOutTween:Play()
         
-        popOutTween:Play()
-        popOutTween.Completed:Connect(function()
-            hideTween:Play()
-            textHideTween:Play()
-            hideTween.Completed:Connect(function()
-                screenGui:Destroy()
-            end)
+        task.delay(FADE_DURATION, function()
+            screenGui:Destroy()
         end)
     end)
 end

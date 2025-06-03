@@ -7,6 +7,7 @@ Interacts With:
   - NotificationManager: Shows notifications
   - SizeStateMachine: Listens for size changes to detect initial spawn
   - LoadingScreen: Waits for loading screen to finish before showing notification
+  - OnboardingMessageNotification: Signals when spawn notification is complete
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +17,11 @@ local NotificationManager = require(script.Parent.NotificationManager)
 local SizeStateMachine = require(ReplicatedStorage:WaitForChild("SizeStateMachine"))
 
 print("SpawnSizeNotification: Starting up...")
+
+-- Create event for other scripts to know when we're done
+local SpawnNotificationComplete = Instance.new("BindableEvent")
+SpawnNotificationComplete.Name = "SpawnNotificationComplete"
+SpawnNotificationComplete.Parent = ReplicatedStorage
 
 -- Track if we've shown the initial spawn notification
 local hasShownSpawnNotification = false
@@ -40,8 +46,13 @@ local function showSpawnSizeNotification(visualHeight)
     local message = string.format("You are %d' %d\" big!", feet, inches)
     
     print("SpawnSizeNotification: Showing notification:", message)
-    NotificationManager.showNotification(message, "size")
+    NotificationManager.showNotification(message)
     hasShownSpawnNotification = true
+    
+    -- Signal completion after notification duration
+    task.delay(2.5, function() -- Wait for notification duration + fade
+        SpawnNotificationComplete:Fire()
+    end)
 end
 
 -- Store the initial size until loading screen finishes

@@ -2,11 +2,9 @@
 Name: TopBarManager
 Type: LocalScript
 Location: StarterGui
-Description: Manages the top bar UI layout including size display and purchase buttons
+Description: Manages the top bar UI layout including purchase buttons
 Interacts With:
   - ButtonStyler: Uses styling utilities
-  - SizeDisplay: Manages size display component
-  - PlayerSizeCalculator: Gets size formatting utilities
   - SizeStateMachine: Gets real-time size data
 --]]
 
@@ -24,15 +22,6 @@ local SPACING = 20
 local BUTTON_STYLES = {
     giant = {
         backgroundColor = Color3.fromRGB(255, 105, 180), -- Pink
-        textColor = Color3.fromRGB(255, 255, 255),
-        strokeColor = Color3.fromRGB(255, 255, 255),
-        strokeThickness = 4,
-        cornerRadius = UDim.new(0.3, 0),
-        textStrokeColor = Color3.fromRGB(0, 0, 0),
-        textStrokeTransparency = 0
-    },
-    size = {
-        backgroundColor = Color3.fromRGB(255, 255, 0), -- Yellow
         textColor = Color3.fromRGB(255, 255, 255),
         strokeColor = Color3.fromRGB(255, 255, 255),
         strokeThickness = 4,
@@ -115,22 +104,6 @@ local function init()
         BUTTON_STYLES.giant
     )
     giantButton.Parent = container
-    
-    -- Create size display (Yellow)
-    local sizeDisplay = Instance.new("TextLabel")
-    sizeDisplay.Name = "SizeDisplay"
-    sizeDisplay.Size = UDim2.new(0, BUTTON_WIDTH, 1, 0)
-    sizeDisplay.Text = "Size: Loading..."
-    ButtonStyler.styleButton(sizeDisplay, BUTTON_STYLES.size)
-    sizeDisplay.Parent = container
-    
-    -- Initialize size display updates
-    updateSizeDisplay(sizeDisplay, player)
-    SizeStateMachine.OnSizeChanged.Event:Connect(function(changedPlayer)
-        if changedPlayer == player then
-            updateSizeDisplay(sizeDisplay, player)
-        end
-    end)
     
     -- Create 2X SPEED button (Green)
     local speedButton = createStyledButton(

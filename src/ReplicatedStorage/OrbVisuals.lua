@@ -31,7 +31,22 @@ local OrbVisuals = {
             color = Color3.fromRGB(255, 0, 0), -- Red
             glowColor = Color3.fromRGB(255, 100, 100),
             rarity = 0.05 -- 5% chance to spawn
+        },
+        RAINBOW_SPEED = {
+            scale = 3, -- Same size as medium orb
+            growthAmount = 0.1, -- Same growth as medium orb
+            color = Color3.fromRGB(93, 163, 255), -- Blue
+            glowColor = Color3.fromRGB(93, 163, 255), -- Matching glow
+            rarity = 0.033, -- ~3.3% chance to spawn (about 1/3 of previous 10%)
+            isSpeedBoost = true
         }
+    },
+
+    -- Speed boost configuration
+    SPEED_BOOST = {
+        duration = 10, -- Duration doubled from 5 to 10 seconds
+        multiplier = 2, -- Speed multiplier
+        fadeTime = 0.5 -- Time to fade in/out the effect
     },
 
     -- Particle effect configuration for pickup

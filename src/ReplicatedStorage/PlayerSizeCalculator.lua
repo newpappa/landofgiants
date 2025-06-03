@@ -37,23 +37,9 @@ end
 
 -- Get a random spawn size with non-linear distribution favoring smaller sizes
 function PlayerSizeCalculator.getRandomSpawnSize()
-    -- Use exponential distribution to favor smaller sizes
-    local randomValue = math.random()
-    print("Random Value Generated:", randomValue)
-    
-    local power = 4 -- Higher power = more bias towards smaller sizes (increased from 3)
-    local normalizedSize = math.pow(randomValue, power)
-    print("After Power of 4:", normalizedSize) -- Updated comment to reflect new power
-    
-    -- Map to our desired range (MIN_SIZE to SPAWN_MAX_SIZE)
-    local size = PlayerSizeCalculator.MIN_SIZE + 
-        normalizedSize * (PlayerSizeCalculator.SPAWN_MAX_SIZE - PlayerSizeCalculator.MIN_SIZE)
-    print("Final Mapped Size:", size)
-    
-    local scale = math.floor(size * 100) / 100  -- Round to 2 decimal places
-    print("Rounded Scale:", scale)
-    
-    return PlayerSizeCalculator.getSizeData(scale)
+    -- Always return minimum size
+    print("PlayerSizeCalculator: Spawning at minimum size:", PlayerSizeCalculator.MIN_SIZE)
+    return PlayerSizeCalculator.getSizeData(PlayerSizeCalculator.MIN_SIZE)
 end
 
 -- Calculate growth after squashing someone

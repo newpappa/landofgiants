@@ -37,13 +37,16 @@ local function getSummary()
         by_type = {
             SMALL = 0,
             MEDIUM = 0,
-            LARGE = 0
+            LARGE = 0,
+            RAINBOW_SPEED = 0
         }
     }
     
     -- Count by type
     for _, spawn in ipairs(attempts.success) do
-        summary.by_type[spawn.type] = summary.by_type[spawn.type] + 1
+        if summary.by_type[spawn.type] then
+            summary.by_type[spawn.type] = summary.by_type[spawn.type] + 1
+        end
     end
     
     return summary
@@ -65,6 +68,7 @@ task.delay(10, function()
     print("  Small Orbs:", summary.by_type.SMALL)
     print("  Medium Orbs:", summary.by_type.MEDIUM)
     print("  Large Orbs:", summary.by_type.LARGE)
+    print("  Rainbow Speed Orbs:", summary.by_type.RAINBOW_SPEED)
     print("========================\n")
 end)
 

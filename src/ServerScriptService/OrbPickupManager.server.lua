@@ -7,6 +7,7 @@ Interacts With:
   - OrbVisuals: Uses visual configurations for pickup effects
   - GrowthHandler: Triggers player growth
   - OrbSpawner: Notifies when orbs are collected
+  - XPManager: Awards XP for orb collection
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,11 +17,47 @@ local Workspace = game:GetService("Workspace")
 local OrbVisuals = require(ReplicatedStorage:WaitForChild("OrbVisuals"))
 local PlayerSizeCalculator = require(ReplicatedStorage:WaitForChild("PlayerSizeCalculator"))
 local SizeStateMachine = require(ReplicatedStorage:WaitForChild("SizeStateMachine"))
+local XPManager = require(ServerScriptService:WaitForChild("XPManager"))
 
 -- Create RemoteEvent for pickup effects
 local OrbPickupEvent = Instance.new("RemoteEvent")
 OrbPickupEvent.Name = "OrbPickupEvent"
 OrbPickupEvent.Parent = ReplicatedStorage
+
+-- Create RemoteEvent for speed boost effects
+local SpeedBoostEvent = Instance.new("RemoteEvent")
+SpeedBoostEvent.Name = "SpeedBoostEvent"
+SpeedBoostEvent.Parent = ReplicatedStorage
+
+-- Table to track active speed boosts
+local activeSpeedBoosts = {}
+
+-- Function to apply speed boost
+local function applySpeedBoost(player)
+    if not player.Character then return end
+    
+    local humanoid = player.Character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+    
+    -- Store original walk speed
+    local originalSpeed = humanoid.WalkSpeed
+    activeSpeedBoosts[player.UserId] = originalSpeed
+    
+    -- Apply speed boost
+    humanoid.WalkSpeed = originalSpeed * OrbVisuals.SPEED_BOOST.multiplier
+    
+    -- Fire client event for visual effects
+    SpeedBoostEvent:FireClient(player, true)
+    
+    -- Remove speed boost after duration
+    task.delay(OrbVisuals.SPEED_BOOST.duration, function()
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            humanoid.WalkSpeed = originalSpeed
+            activeSpeedBoosts[player.UserId] = nil
+            SpeedBoostEvent:FireClient(player, false)
+        end
+    end)
+end
 
 -- Function to handle orb pickup
 local function handleOrbPickup(player, orb)
@@ -34,11 +71,11 @@ local function handleOrbPickup(player, orb)
     end
     orb:SetAttribute("BeingPickedUp", true)
     
-    -- Get growth amount from orb
+    -- Get orb data
     local growthAmount = orb:GetAttribute("GrowthAmount")
     local orbType = orb:GetAttribute("OrbType")
     
-    if not growthAmount or not orbType then
+    if not orbType then
         warn("OrbPickupManager: Invalid orb data for", orb.Name)
         orb:SetAttribute("BeingPickedUp", false)
         return
@@ -75,15 +112,20 @@ local function handleOrbPickup(player, orb)
         
         -- Fire pickup event for effects with growth information
         OrbPickupEvent:FireAllClients(player, orb.Position, orbType, feetGrowth)
-        
-        -- Remove the orb
-        orb:Destroy()
-    else
-        if newScale >= PlayerSizeCalculator.MAX_SIZE then
-            print("OrbPickupManager: Player at maximum size")
-        end
-        orb:SetAttribute("BeingPickedUp", false)
     end
+    
+    -- Check if this is a speed boost orb
+    local orbData = OrbVisuals.ORB_TYPES[orbType]
+    if orbData and orbData.isSpeedBoost then
+        applySpeedBoost(player)
+    end
+    
+    -- Award XP for any orb pickup
+    XPManager:AwardXP(player, "orb")
+    print("OrbPickupManager: Awarded XP for orb collection to", player.Name)
+    
+    -- Remove the orb
+    orb:Destroy()
 end
 
 -- Set up touch detection for orbs

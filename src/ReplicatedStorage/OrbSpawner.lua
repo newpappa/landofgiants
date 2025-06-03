@@ -23,21 +23,41 @@ orbFolder.Parent = Workspace
 local OrbSpawner = {}
 
 -- Function to create a new orb
-function OrbSpawner.CreateOrb(position)
-    -- Select orb type based on rarity
-    local rand = math.random()
-    local selectedType
-    local cumulativeRarity = 0
+function OrbSpawner.CreateOrb(positionData)
+    -- Handle both Vector3 and custom position table
+    local position
+    local forcedType
     
-    for typeName, typeData in pairs(OrbVisuals.ORB_TYPES) do
-        cumulativeRarity = cumulativeRarity + typeData.rarity
-        if rand <= cumulativeRarity then
-            selectedType = typeName
-            break
+    if typeof(positionData) == "Vector3" then
+        position = positionData
+    elseif typeof(positionData) == "table" then
+        position = positionData.position
+        forcedType = positionData.forcedType
+    else
+        warn("OrbSpawner: Invalid position data type")
+        return nil
+    end
+    
+    -- Select orb type based on rarity or forced type
+    local selectedType = forcedType
+    if not selectedType then
+        local rand = math.random()
+        local cumulativeRarity = 0
+        
+        for typeName, typeData in pairs(OrbVisuals.ORB_TYPES) do
+            cumulativeRarity = cumulativeRarity + typeData.rarity
+            if rand <= cumulativeRarity then
+                selectedType = typeName
+                break
+            end
         end
     end
     
     local typeData = OrbVisuals.ORB_TYPES[selectedType]
+    if not typeData then
+        warn("OrbSpawner: Invalid orb type:", selectedType)
+        return nil
+    end
     
     -- Create the orb part
     local orb = Instance.new("Part")

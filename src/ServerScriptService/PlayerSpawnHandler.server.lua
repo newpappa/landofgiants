@@ -6,12 +6,14 @@ Description: Handles player spawning and initial size setup
 Interacts With:
   - PlayerSizeCalculator: Gets spawn size calculations
   - SizeStateMachine: Updates player sizes
+  - OrbFTUCluster: Spawns initial orbs for new players
 --]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PlayerSizeCalculator = require(ReplicatedStorage:WaitForChild("PlayerSizeCalculator"))
 local SizeStateMachine = require(ReplicatedStorage:WaitForChild("SizeStateMachine"))
+local OrbFTUCluster = require(ReplicatedStorage:WaitForChild("OrbFTUCluster"))
 
 print("PlayerSpawnHandler: Starting up...")
 
@@ -33,6 +35,12 @@ local function handleCharacterSpawn(player, character)
     if humanoid then
         print("PlayerSpawnHandler: Initial walk speed for", player.Name, "is", humanoid.WalkSpeed)
     end
+    
+    -- Spawn FTU orb cluster in front of the player
+    task.delay(1, function() -- Small delay to ensure character is fully loaded
+        OrbFTUCluster:SpawnCluster(character)
+        print("PlayerSpawnHandler: Spawned FTU orb cluster for", player.Name)
+    end)
 end
 
 -- Set up player handlers
