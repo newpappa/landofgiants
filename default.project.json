@@ -1,5 +1,5 @@
 {
-  "name": "Land of Giants",
+  "name": "landofgiants",
   "tree": {
     "$className": "DataModel",
     "ReplicatedFirst": {
@@ -8,7 +8,9 @@
     },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
-      "$path": "src/ReplicatedStorage",
+      "Shared": {
+        "$path": "src/Shared"
+      },
       "Models": {
         "$className": "Folder",
         "$ignoreUnknownInstances": true
@@ -23,7 +25,9 @@
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "$path": "src/ServerScriptService"
+      "Server": {
+        "$path": "src/Server"
+      }
     },
     "StarterGui": {
       "$className": "StarterGui",
@@ -33,7 +37,9 @@
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "$path": "src/StarterPlayer/StarterPlayerScripts"
+        "Client": {
+          "$path": "src/Client"
+        }
       }
     },
     "Lighting": {
