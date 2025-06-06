@@ -57,6 +57,14 @@ function ModuleLoader.LoadFromFolder(folder)
     end
     
     print("ModuleLoader: Found", #initPromises, "modules to initialize in", folder.Name)
+    
+    -- If no promises to wait for, return resolved promise
+    if #initPromises == 0 then
+        return Promise.new(function(resolve)
+            resolve()
+        end)
+    end
+    
     -- Wait for all init promises to resolve
     return Promise.all(initPromises)
 end

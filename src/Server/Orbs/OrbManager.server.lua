@@ -15,6 +15,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 -- Load dependencies
 local RandomOrbPositions = require(ReplicatedStorage.Shared.Orbs.RandomOrbPositions)
 local OrbSpawner = require(ReplicatedStorage.Shared.Orbs.OrbSpawner)
+local Promise = require(ReplicatedStorage.Shared.Core.Promise)
 
 -- Configuration
 local CONFIG = {
@@ -26,16 +27,38 @@ local CONFIG = {
 }
 
 -- Create the OrbManager table
-local OrbManager = {}
+local OrbManager = {
+    _initialized = false
+}
 
 -- Track active orbs
 local activeOrbs = {}
 
 -- Initialize systems
-local function initialize()
-    print("OrbManager: Starting initialization...")
-    RandomOrbPositions.Initialize()
-    print("OrbManager: Initialization complete")
+function OrbManager.Init()
+    if OrbManager._initialized then
+        return Promise.resolve()
+    end
+
+    return Promise.new(function(resolve, reject)
+        local success, err = pcall(function()
+            print("OrbManager: Starting initialization...")
+            RandomOrbPositions.Init():andThen(function()
+                print("OrbManager: RandomOrbPositions initialized")
+                OrbManager._initialized = true
+                print("OrbManager: Initialization complete")
+                resolve()
+            end):catch(function(err)
+                print("OrbManager: RandomOrbPositions initialization failed:", err)
+                reject(err)
+            end)
+        end)
+
+        if not success then
+            print("OrbManager: Initialization failed:", err)
+            reject(err)
+        end
+    end)
 end
 
 -- Function to get a valid position for death orbs
@@ -138,47 +161,52 @@ function OrbManager.GetOrbCount()
 end
 
 -- Initialize the system
-initialize()
-
--- Fast initial spawning to reach minimum orb count quickly
-task.spawn(function()
-    print("OrbManager: Starting initial orb spawn...")
-    
-    local currentCount = OrbManager.GetOrbCount()
-    local needed = CONFIG.MIN_ORBS - currentCount
-    
-    -- Spawn all needed orbs instantly
-    for i = 1, needed do
-        OrbManager.SpawnRandomOrb()
-        -- Small wait to prevent overwhelming
-        if i % 50 == 0 then
-            task.wait()
-        end
-    end
-    
-    -- Wait a moment for all orbs to fully spawn
-    task.wait(1)
-    
-    -- Print final spawn stats
-    print("\n=== INITIAL SPAWN COMPLETE ===")
-    print("Target Count:", CONFIG.MIN_ORBS)
-    print("Actual Count:", OrbManager.GetOrbCount())
-    print("=============================\n")
-end)
-
--- Start periodic random spawn check for maintenance
-task.spawn(function()
-    -- Wait a bit for initial spawning to complete
-    task.wait(2)
-    
-    while true do
-        task.wait(CONFIG.SPAWN_INTERVAL)
+OrbManager.Init():andThen(function()
+    print("OrbManager: Starting orb spawning system...")
+    -- Fast initial spawning to reach minimum orb count quickly
+    task.spawn(function()
+        print("OrbManager: Starting initial orb spawn...")
         
-        local count = OrbManager.GetOrbCount()
-        if count < CONFIG.MIN_ORBS then
+        local currentCount = OrbManager.GetOrbCount()
+        local needed = CONFIG.MIN_ORBS - currentCount
+        
+        print("OrbManager: Need to spawn", needed, "orbs")
+        
+        -- Spawn all needed orbs instantly
+        for i = 1, needed do
             OrbManager.SpawnRandomOrb()
+            -- Small wait to prevent overwhelming
+            if i % 50 == 0 then
+                task.wait()
+            end
         end
-    end
+        
+        -- Wait a moment for all orbs to fully spawn
+        task.wait(1)
+        
+        -- Print final spawn stats
+        print("\n=== INITIAL SPAWN COMPLETE ===")
+        print("Target Count:", CONFIG.MIN_ORBS)
+        print("Actual Count:", OrbManager.GetOrbCount())
+        print("=============================\n")
+    end)
+
+    -- Start periodic random spawn check for maintenance
+    task.spawn(function()
+        -- Wait a bit for initial spawning to complete
+        task.wait(2)
+        
+        while true do
+            task.wait(CONFIG.SPAWN_INTERVAL)
+            
+            local count = OrbManager.GetOrbCount()
+            if count < CONFIG.MIN_ORBS then
+                OrbManager.SpawnRandomOrb()
+            end
+        end
+    end)
+end):catch(function(err)
+    warn("OrbManager initialization failed:", err)
 end)
 
 return OrbManager 

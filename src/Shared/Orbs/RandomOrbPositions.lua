@@ -1,122 +1,111 @@
 --[[
 Name: RandomOrbPositions
 Type: ModuleScript
-Location: ReplicatedStorage
-Description: Manages random position sampling for orb spawning using grid-based positioning
+Location: ReplicatedStorage.Shared.Orbs
+Description: Manages random position sampling for orb spawning
+Interacts With:
+  - PositionSampler: Uses for base position sampling
+  - OrbSpawnManager: Provides positions for orb spawning
 --]]
 
-local RandomOrbPositions = {}
+local Promise = require(game:GetService("ReplicatedStorage").Shared.Core.Promise)
+local PositionSampler = require(game:GetService("ServerScriptService").Server.Core.PositionSampler)
 
--- Playable world corner points - use these to define the actual spawn area
-local PLAYABLE_CORNERS = {
-    NORTHWEST = Vector3.new(-1200, 2570.875, 0),
-    SOUTHWEST = Vector3.new(-1200, 2570.875, 3800),
-    SOUTHEAST = Vector3.new(2400, 2570.875, 3800),
-    NORTHEAST = Vector3.new(2400, 2570.875, 0)
-}
-
--- Calculate the bounding box from the playable corners
-local PLAYABLE_BOUNDS = {
-    MIN_X = math.min(PLAYABLE_CORNERS.NORTHWEST.X, PLAYABLE_CORNERS.SOUTHWEST.X, PLAYABLE_CORNERS.SOUTHEAST.X, PLAYABLE_CORNERS.NORTHEAST.X),
-    MAX_X = math.max(PLAYABLE_CORNERS.NORTHWEST.X, PLAYABLE_CORNERS.SOUTHWEST.X, PLAYABLE_CORNERS.SOUTHEAST.X, PLAYABLE_CORNERS.NORTHEAST.X),
-    MIN_Z = math.min(PLAYABLE_CORNERS.NORTHWEST.Z, PLAYABLE_CORNERS.SOUTHWEST.Z, PLAYABLE_CORNERS.SOUTHEAST.Z, PLAYABLE_CORNERS.NORTHEAST.Z),
-    MAX_Z = math.max(PLAYABLE_CORNERS.NORTHWEST.Z, PLAYABLE_CORNERS.SOUTHWEST.Z, PLAYABLE_CORNERS.SOUTHEAST.Z, PLAYABLE_CORNERS.NORTHEAST.Z),
-    Y = PLAYABLE_CORNERS.NORTHWEST.Y
+local RandomOrbPositions = {
+    _initialized = false
 }
 
 -- Grid configuration
 local GRID_SPACING = 25
-local PLAYABLE_WIDTH = PLAYABLE_BOUNDS.MAX_X - PLAYABLE_BOUNDS.MIN_X
-local PLAYABLE_DEPTH = PLAYABLE_BOUNDS.MAX_Z - PLAYABLE_BOUNDS.MIN_Z
-local GRID_SIZE_X = math.ceil(PLAYABLE_WIDTH / GRID_SPACING)
-local GRID_SIZE_Z = math.ceil(PLAYABLE_DEPTH / GRID_SPACING)
 local HEIGHT_OFFSET = 1
+local MARGIN = 50
+local VARIATION_AMOUNT = 20
 
 -- Storage
 local gridPositions = {}
 local lastGenerationTime = 0
 local REGENERATE_INTERVAL = 300
 
--- Services
-local Workspace = game:GetService("Workspace")
-
 -- Generate grid positions
 local function generateGridPositions()
-    local gridPositions = {}
-    local validCount = 0
-    
-    for i = 0, GRID_SIZE_X - 1 do
-        for j = 0, GRID_SIZE_Z - 1 do
-            local x = PLAYABLE_BOUNDS.MIN_X + (i * GRID_SPACING)
-            local z = PLAYABLE_BOUNDS.MIN_Z + (j * GRID_SPACING)
-            
-            -- Skip positions outside playable bounds
-            local margin = 50
-            if x < PLAYABLE_BOUNDS.MIN_X - margin or x > PLAYABLE_BOUNDS.MAX_X + margin or
-               z < PLAYABLE_BOUNDS.MIN_Z - margin or z > PLAYABLE_BOUNDS.MAX_Z + margin then
-                continue
-            end
-            
-            -- Raycast to find ground
-            local raycastParams = RaycastParams.new()
-            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-            raycastParams.FilterDescendantsInstances = {workspace.CurrentCamera}
-            
-            local rayOrigin = Vector3.new(x, PLAYABLE_BOUNDS.Y + 100, z)
-            local rayDirection = Vector3.new(0, -200, 0)
-            
-            local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-            
-            if raycastResult then
-                local hitPosition = raycastResult.Position
-                local hitNormal = raycastResult.Normal
-                
-                if hitNormal.Y > 0.3 and math.abs(hitPosition.Y - PLAYABLE_BOUNDS.Y) <= 10 then
-                    local spawnPosition = hitPosition + Vector3.new(0, HEIGHT_OFFSET, 0)
-                    table.insert(gridPositions, spawnPosition)
-                    validCount += 1
-                end
-            end
-        end
-    end
-    
+    print("RandomOrbPositions: Generating grid positions...")
+    -- Use PositionSampler to generate positions
+    local positions, validCount = PositionSampler.GenerateGridPositions(GRID_SPACING, HEIGHT_OFFSET, MARGIN)
+    gridPositions = positions
     lastGenerationTime = tick()
-    return gridPositions
+    print("RandomOrbPositions: Generated", validCount, "valid positions")
+    return positions, validCount
 end
 
-function RandomOrbPositions:Initialize()
-    gridPositions = generateGridPositions()
+function RandomOrbPositions.Init()
+    if RandomOrbPositions._initialized then
+        print("RandomOrbPositions: Already initialized")
+        return Promise.resolve()
+    end
+    
+    return Promise.new(function(resolve, reject)
+        local success, err = pcall(function()
+            print("RandomOrbPositions: Starting initialization...")
+            
+            -- Initialize PositionSampler first
+            print("RandomOrbPositions: Initializing PositionSampler...")
+            PositionSampler.Init():andThen(function()
+                print("RandomOrbPositions: PositionSampler initialized")
+                
+                -- Generate initial grid positions
+                generateGridPositions()
+                
+                RandomOrbPositions._initialized = true
+                print("RandomOrbPositions: Initialization complete")
+                resolve()
+            end):catch(function(err)
+                print("RandomOrbPositions: PositionSampler initialization failed:", err)
+                reject(err)
+            end)
+        end)
+        
+        if not success then
+            print("RandomOrbPositions: Initialization failed:", err)
+            reject(err)
+        end
+    end)
 end
 
 function RandomOrbPositions:GetRandomPosition()
+    if not RandomOrbPositions._initialized then
+        error("RandomOrbPositions must be initialized before use")
+    end
+    
     if tick() - lastGenerationTime > REGENERATE_INTERVAL then
+        print("RandomOrbPositions: Regenerating grid positions due to interval")
         gridPositions = generateGridPositions()
     end
     
-    if #gridPositions == 0 then
-        return nil
+    -- Use PositionSampler to get random position with variation
+    local position = PositionSampler.GetRandomPosition(gridPositions, VARIATION_AMOUNT)
+    if position then
+        print("RandomOrbPositions: Generated random position:", position.X, position.Y, position.Z)
+    else
+        print("RandomOrbPositions: Failed to generate random position - no valid positions available")
     end
-    
-    local randomIndex = math.random(1, #gridPositions)
-    local position = gridPositions[randomIndex]
-    
-    -- Add some random variation to avoid exact grid placement
-    local variation = Vector3.new(
-        (math.random() - 0.5) * 20,
-        0,
-        (math.random() - 0.5) * 20
-    )
-    
-    return position + variation
+    return position
 end
 
 function RandomOrbPositions:GetPositionCount()
+    if not RandomOrbPositions._initialized then
+        error("RandomOrbPositions must be initialized before use")
+    end
+
     return #gridPositions
 end
 
 function RandomOrbPositions:GetMapInfo()
+    if not RandomOrbPositions._initialized then
+        error("RandomOrbPositions must be initialized before use")
+    end
+    
     return {
-        bounds = PLAYABLE_BOUNDS,
+        bounds = PositionSampler.GetPlayableBounds(),
     }
 end
 

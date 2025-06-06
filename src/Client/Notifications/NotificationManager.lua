@@ -43,6 +43,30 @@ local STYLES = {
         textStrokeTransparency = 0,
         textStrokeColor = Color3.fromRGB(100, 100, 100), -- Softer stroke
         displayDuration = 4 -- Show longer
+    },
+    speed = {
+        width = 400,
+        height = 80,
+        backgroundColor = Color3.fromRGB(0, 200, 255), -- Light blue
+        textColor = Color3.fromRGB(255, 255, 255),
+        textSize = 28,
+        cornerRadius = UDim.new(0, 15),
+        padding = 20,
+        textStrokeTransparency = 0,
+        textStrokeColor = Color3.fromRGB(0, 0, 0),
+        displayDuration = 3
+    },
+    giant = {
+        width = 400,
+        height = 80,
+        backgroundColor = Color3.fromRGB(255, 100, 0), -- Orange
+        textColor = Color3.fromRGB(255, 255, 255),
+        textSize = 28,
+        cornerRadius = UDim.new(0, 15),
+        padding = 20,
+        textStrokeTransparency = 0,
+        textStrokeColor = Color3.fromRGB(0, 0, 0),
+        displayDuration = 3
     }
 }
 
@@ -52,11 +76,16 @@ local TOP_BAR_HEIGHT = 50 -- Matching TopBarManager's height
 local NOTIFICATION_SPACING = 20 -- Space between top bar and notification
 
 function NotificationManager.showNotification(message, style)
+    -- Validate style parameter
+    if not style or not STYLES[style] then
+        style = "default"
+    end
+    
     local player = Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
     
     -- Get style configuration
-    local styleConfig = STYLES[style or "default"]
+    local styleConfig = STYLES[style]
     
     -- Create notification UI
     local screenGui = Instance.new("ScreenGui")
