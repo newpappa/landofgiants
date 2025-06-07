@@ -113,4 +113,8 @@ function Promise.all(promises)
     end)
 end
 
+function Promise.Init()
+    return true
+end
+
 return Promise 

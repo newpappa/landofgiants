@@ -131,4 +131,8 @@ end
 
 print("SizeStateMachine initialized!")
 
+function SizeStateMachine.Init()
+    return true
+end
+
 return SizeStateMachine 

@@ -12,9 +12,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+print("SpeedBoostEffects: Starting up...")
+
 local OrbVisuals = require(ReplicatedStorage.Shared.Orbs.OrbVisuals)
 local EventManager = require(ReplicatedStorage.Shared.Core.EventManager)
+
+print("SpeedBoostEffects: Modules loaded")
+print("SpeedBoostEffects: Speed boost config:", OrbVisuals.SPEED_BOOST)
+
+-- Get the SpeedBoostEvent from EventManager
 local SpeedBoostEvent = EventManager:GetEvent("SpeedBoostEvent")
+print("SpeedBoostEffects: Found SpeedBoostEvent:", SpeedBoostEvent and "Yes" or "No")
 
 -- Configuration
 local TRAIL_LENGTH = 75 -- Increased trail length from 50 to 75 studs
@@ -25,6 +33,7 @@ local activeTrail = nil -- Store the active trail instance
 
 -- Function to create speed trail
 local function createSpeedTrail(character)
+    print("SpeedBoostEffects: Creating speed trail for character")
     local trail = Instance.new("Trail")
     trail.Name = "SpeedTrail"
     trail.Color = ColorSequence.new(OrbVisuals.ORB_TYPES.RAINBOW_SPEED.color)
@@ -52,13 +61,14 @@ local function createSpeedTrail(character)
     trail.Attachment1 = attachment2
     trail.Parent = character.HumanoidRootPart
     
+    print("SpeedBoostEffects: Speed trail created and attached")
     return trail
 end
 
 -- Watch for new rainbow orbs
 local function setupSpeedOrb(orb)
     if orb:GetAttribute("OrbType") == "RAINBOW_SPEED" then
-        -- No need to store or update the orb color since it's now static
+        print("SpeedBoostEffects: Found rainbow speed orb")
     end
 end
 
@@ -69,13 +79,26 @@ workspace.ChildAdded:Connect(function(child)
 end)
 
 -- Handle speed boost effects
+print("SpeedBoostEffects: Setting up event listener...")
+if not SpeedBoostEvent then
+    warn("SpeedBoostEffects: Failed to get SpeedBoostEvent!")
+    return
+end
+
+print("SpeedBoostEffects: Connecting to SpeedBoostEvent...")
 SpeedBoostEvent.OnClientEvent:Connect(function(isActive)
+    print("SpeedBoostEffects: Received speed boost event, isActive:", isActive)
     local player = game.Players.LocalPlayer
-    if not player.Character then return end
+    if not player.Character then 
+        print("SpeedBoostEffects: No character found, returning")
+        return 
+    end
     
     if isActive then
+        print("SpeedBoostEffects: Activating speed boost effects")
         -- Clean up existing trail if any
         if activeTrail and activeTrail.Parent then
+            print("SpeedBoostEffects: Cleaning up existing trail")
             activeTrail:Destroy()
         end
         
@@ -88,7 +111,9 @@ SpeedBoostEvent.OnClientEvent:Connect(function(isActive)
             MaxLength = TRAIL_LENGTH
         })
         tween:Play()
+        print("SpeedBoostEffects: Started fade in tween")
     else
+        print("SpeedBoostEffects: Deactivating speed boost effects")
         -- Find and remove trail
         if activeTrail and activeTrail.Parent then
             -- Fade out trail
@@ -97,6 +122,7 @@ SpeedBoostEvent.OnClientEvent:Connect(function(isActive)
                 MaxLength = 0
             })
             tween:Play()
+            print("SpeedBoostEffects: Started fade out tween")
             
             -- Remove trail after fade
             task.delay(OrbVisuals.SPEED_BOOST.fadeTime, function()
@@ -104,14 +130,18 @@ SpeedBoostEvent.OnClientEvent:Connect(function(isActive)
                     activeTrail:Destroy()
                 end
                 activeTrail = nil
+                print("SpeedBoostEffects: Trail cleanup complete")
             end)
         end
     end
 end)
+print("SpeedBoostEffects: Event listener set up")
 
 -- Set up existing orbs
 for _, orb in ipairs(workspace:GetChildren()) do
     if orb.Name:match("^GrowthOrb") then
         setupSpeedOrb(orb)
     end
-end 
+end
+
+print("SpeedBoostEffects: Initialization complete") 

@@ -27,10 +27,39 @@ Our game uses a structured module loading system that ensures modules are loaded
 - Handles initialization of remote events
 - Provides a consistent interface for accessing events
 
+## Script Types and Patterns
+
+### 1. Server-Side Modules
+- Located in `ServerScriptService.Server`
+- Must implement the `Init()` function pattern
+- Are loaded and initialized by the server bootstrapper
+- Follow the module structure below
+
+### 2. Client-Side Scripts
+- Located in `StarterPlayer.StarterPlayerScripts.Client`
+- Are `LocalScript`s that run directly
+- Do NOT use the `Init()` pattern
+- Follow a simpler pattern:
+  ```lua
+  --[[
+  Name: ExampleClientScript
+  Type: LocalScript
+  Location: StarterPlayerScripts.Client.Example
+  Description: Example client script
+  --]]
+
+  print("ExampleClientScript: Starting up...")
+  
+  -- Setup code here
+  -- Event connections here
+  
+  print("ExampleClientScript: Initialization complete")
+  ```
+
 ## Module Requirements
 
 ### 1. Module Structure
-All modules should follow this basic structure:
+All server-side modules should follow this basic structure:
 ```lua
 local ModuleName = {}
 
@@ -48,7 +77,7 @@ return ModuleName
 ```
 
 ### 2. Initialization Function
-- Every module must implement an `Init()` function
+- Every server module must implement an `Init()` function
 - The `Init()` function can be synchronous or asynchronous
 - If asynchronous, return a Promise
 - If synchronous, return any value (will be wrapped in a Promise)
@@ -87,7 +116,7 @@ end
 1. **Module Headers**
    - Include a header comment block with:
      - Name
-     - Type (ModuleScript)
+     - Type (ModuleScript or LocalScript)
      - Location
      - Description
      - Interacts With (list of dependencies)
@@ -98,7 +127,7 @@ end
    - Return meaningful error messages
 
 3. **State Management**
-   - Initialize state in `Init()`
+   - Initialize state in `Init()` for server modules
    - Clean up resources when needed
    - Use attributes for persistent data
 

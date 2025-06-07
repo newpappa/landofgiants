@@ -17,7 +17,7 @@ end
 
 -- Loads all modules from a folder in sequence
 function ModuleLoader.LoadFromFolder(folder)
-    print("ModuleLoader: Loading from folder:", folder:GetFullName())
+    print("ModuleLoader: Starting to load from folder:", folder:GetFullName())
     local initPromises = {}
     
     -- Get all ModuleScripts in the folder
@@ -60,13 +60,23 @@ function ModuleLoader.LoadFromFolder(folder)
     
     -- If no promises to wait for, return resolved promise
     if #initPromises == 0 then
+        print("ModuleLoader: No modules to initialize in", folder.Name)
         return Promise.new(function(resolve)
             resolve()
         end)
     end
     
     -- Wait for all init promises to resolve
-    return Promise.all(initPromises)
+    print("ModuleLoader: Waiting for", #initPromises, "modules to initialize in", folder.Name)
+    return Promise.all(initPromises):andThen(function()
+        print("ModuleLoader: All modules initialized successfully in", folder.Name)
+    end):catch(function(err)
+        warn("ModuleLoader: Error initializing modules in", folder.Name, ":", err)
+    end)
+end
+
+function ModuleLoader.Init()
+    return true
 end
 
 return ModuleLoader 

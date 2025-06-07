@@ -22,12 +22,24 @@ local function loadModuleFolder(folderName)
     return ModuleLoader.LoadFromFolder(folder)
 end
 
+-- Function to load shared core modules
+local function loadSharedCoreModules()
+    local coreFolder = ReplicatedStorage.Shared.Core
+    print("Loading shared core modules...")
+    return ModuleLoader.LoadFromFolder(coreFolder)
+end
+
 -- Main loading sequence
 local function initialize()
     print("Starting server initialization...")
     
-    -- Load modules in sequence
-    loadModuleFolder("Core")  -- Load core modules first (including LeaderstatsUpdater)
+    -- Load shared core modules first
+    loadSharedCoreModules()
+        :andThen(function()
+            print("Shared core modules loaded successfully")
+            -- Load server modules in sequence
+            return loadModuleFolder("Core")  -- Load core modules first (including LeaderstatsUpdater)
+        end)
         :andThen(function()
             print("Core modules loaded successfully")
             return loadModuleFolder("Orbs")  -- Then load Orbs system

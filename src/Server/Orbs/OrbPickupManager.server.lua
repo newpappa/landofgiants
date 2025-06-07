@@ -7,7 +7,6 @@ Interacts With:
   - OrbVisuals: Uses visual configurations for pickup effects
   - GrowthHandler: Triggers player growth
   - OrbSpawner: Notifies when orbs are collected
-  - XPManager: Awards XP for orb collection
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,23 +16,26 @@ local Workspace = game:GetService("Workspace")
 local OrbVisuals = require(ReplicatedStorage.Shared.Orbs.OrbVisuals)
 local PlayerSizeCalculator = require(ReplicatedStorage.Shared.Progression.PlayerSizeCalculator)
 local SizeStateMachine = require(ReplicatedStorage.Shared.Core.SizeStateMachine)
-local SquashTracker = require(ServerScriptService.Server.Orbs.SquashTracker)
+local EventManager = require(ReplicatedStorage.Shared.Core.EventManager)
 
--- Initialize SquashTracker
-SquashTracker.Init()
+print("OrbPickupManager: Starting up...")
 
--- Create RemoteEvent for pickup effects
-local OrbPickupEvent = Instance.new("RemoteEvent")
-OrbPickupEvent.Name = "OrbPickupEvent"
-OrbPickupEvent.Parent = ReplicatedStorage
+-- Initialize EventManager
+print("OrbPickupManager: Initializing EventManager...")
+EventManager:Initialize()
+print("OrbPickupManager: EventManager initialized")
 
--- Create RemoteEvent for speed boost effects
-local SpeedBoostEvent = Instance.new("RemoteEvent")
-SpeedBoostEvent.Name = "SpeedBoostEvent"
-SpeedBoostEvent.Parent = ReplicatedStorage
+-- Get RemoteEvents from EventManager
+local OrbPickupEvent = EventManager:GetEvent("OrbPickupEvent")
+local SpeedBoostEvent = EventManager:GetEvent("SpeedBoostEvent")
+print("OrbPickupManager: Found OrbPickupEvent:", OrbPickupEvent and "Yes" or "No")
+print("OrbPickupManager: Found SpeedBoostEvent:", SpeedBoostEvent and "Yes" or "No")
 
 -- Table to track active speed boosts
 local activeSpeedBoosts = {}
+
+-- Table to track orbs being processed
+local processingOrbs = {}
 
 -- Function to apply speed boost
 local function applySpeedBoost(player)
@@ -50,6 +52,7 @@ local function applySpeedBoost(player)
     humanoid.WalkSpeed = originalSpeed * OrbVisuals.SPEED_BOOST.multiplier
     
     -- Fire client event for visual effects
+    print("OrbPickupManager: Firing speed boost event for player:", player.Name)
     SpeedBoostEvent:FireClient(player, true)
     
     -- Remove speed boost after duration
@@ -57,6 +60,7 @@ local function applySpeedBoost(player)
         if player.Character and player.Character:FindFirstChild("Humanoid") then
             humanoid.WalkSpeed = originalSpeed
             activeSpeedBoosts[player.UserId] = nil
+            print("OrbPickupManager: Firing speed boost end event for player:", player.Name)
             SpeedBoostEvent:FireClient(player, false)
         end
     end)
@@ -64,15 +68,28 @@ end
 
 -- Function to handle orb pickup
 local function handleOrbPickup(player, orb)
-    if not orb or not orb:IsDescendantOf(Workspace) then
+    -- Check if orb is already being processed
+    if processingOrbs[orb] then
         return
     end
     
-    -- Check if orb is already being processed (debounce)
-    if orb:GetAttribute("BeingPickedUp") then
+    -- Mark orb as being processed
+    processingOrbs[orb] = true
+    
+    -- Clean up processing flag when orb is destroyed
+    orb.AncestryChanged:Connect(function(_, newParent)
+        if not newParent then
+            processingOrbs[orb] = nil
+        end
+    end)
+    
+    print("OrbPickupManager: Handling orb pickup for player:", player.Name)
+    
+    if not orb or not orb:IsDescendantOf(Workspace) then
+        print("OrbPickupManager: Invalid orb or not in workspace")
+        processingOrbs[orb] = nil
         return
     end
-    orb:SetAttribute("BeingPickedUp", true)
     
     -- Get orb data
     local growthAmount = orb:GetAttribute("GrowthAmount")
@@ -80,15 +97,18 @@ local function handleOrbPickup(player, orb)
     
     if not orbType then
         warn("OrbPickupManager: Invalid orb data for", orb.Name)
-        orb:SetAttribute("BeingPickedUp", false)
+        processingOrbs[orb] = nil
         return
     end
+    
+    print("OrbPickupManager: Orb type:", orbType)
+    print("OrbPickupManager: Growth amount:", growthAmount)
     
     -- Get current size data
     local currentSize = SizeStateMachine:GetPlayerScale(player)
     if not currentSize then
         warn("OrbPickupManager: No current size found for", player.Name)
-        orb:SetAttribute("BeingPickedUp", false)
+        processingOrbs[orb] = nil
         return
     end
     
@@ -114,18 +134,19 @@ local function handleOrbPickup(player, orb)
         local feetGrowth = newVisualHeight - oldVisualHeight
         
         -- Fire pickup event for effects with growth information
-        OrbPickupEvent:FireAllClients(player, orb.Position, orbType, feetGrowth)
+        print("OrbPickupManager: Firing pickup event for player:", player.Name)
+        print("OrbPickupManager: Position:", orb.Position)
+        print("OrbPickupManager: Orb type:", orbType)
+        print("OrbPickupManager: Feet growth:", feetGrowth)
+        OrbPickupEvent:FireClient(player, player, orb.Position, orbType, feetGrowth)
     end
     
     -- Check if this is a speed boost orb
     local orbData = OrbVisuals.ORB_TYPES[orbType]
     if orbData and orbData.isSpeedBoost then
+        print("OrbPickupManager: Applying speed boost for player:", player.Name)
         applySpeedBoost(player)
     end
-    
-    -- Award XP for any orb pickup by firing the SquashCountChanged event
-    SquashTracker.SquashCountChanged:Fire(player, 1)
-    print("OrbPickupManager: Awarded XP for orb collection to", player.Name)
     
     -- Remove the orb
     orb:Destroy()
@@ -161,20 +182,27 @@ local function setupOrbTouch(orb)
 end
 
 -- Watch for new orbs
+print("OrbPickupManager: Setting up orb folder watcher...")
 local orbFolder = Workspace:WaitForChild("GrowthOrbs")
+print("OrbPickupManager: Found orb folder")
 
 orbFolder.ChildAdded:Connect(function(orb)
     if orb:IsA("BasePart") then
+        print("OrbPickupManager: New orb added, setting up touch detection")
         setupOrbTouch(orb)
     end
 end)
 
 -- Set up existing orbs
+print("OrbPickupManager: Setting up existing orbs...")
 for _, orb in ipairs(orbFolder:GetChildren()) do
     if orb:IsA("BasePart") then
+        print("OrbPickupManager: Setting up touch detection for existing orb")
         setupOrbTouch(orb)
     end
 end
+
+print("OrbPickupManager: Initialization complete")
 
 -- Return module interface
 return {
