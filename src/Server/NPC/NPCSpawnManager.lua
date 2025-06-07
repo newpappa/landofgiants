@@ -121,7 +121,9 @@ end
 -- Initialize the NPCSpawnManager
 function NPCSpawnManager.Init()
     if NPCSpawnManager._initialized then
-        return Promise.resolve()
+        return Promise.new(function(resolve)
+            resolve()
+        end)
     end
 
     return Promise.new(function(resolve, reject)
@@ -129,6 +131,10 @@ function NPCSpawnManager.Init()
             -- Initialize RandomNPCPositions first
             print("NPCSpawnManager: Initializing RandomNPCPositions...")
             RandomNPCPositions.Init():andThen(function()
+                -- Initialize NPCFactory
+                print("NPCSpawnManager: Initializing NPCFactory...")
+                return NPCFactory.Init()
+            end):andThen(function()
                 -- Initialize all state
                 NPCSpawnManager._activeNPCs = {}
                 NPCSpawnManager._spawnCooldowns = {}
@@ -148,7 +154,7 @@ function NPCSpawnManager.Init()
                 print("NPCSpawnManager: Initialized successfully")
                 resolve()
             end):catch(function(err)
-                warn("NPCSpawnManager: RandomNPCPositions initialization failed:", err)
+                warn("NPCSpawnManager: Initialization failed:", err)
                 reject(err)
             end)
         end)

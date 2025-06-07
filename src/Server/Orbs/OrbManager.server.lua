@@ -7,6 +7,7 @@ Interacts With:
   - OrbSpawner: Creates and removes orbs
   - RandomOrbPositions: Gets spawn positions
   - OrbCounter: Records spawn statistics
+  - ProximityManager: Notifies about orb changes
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +17,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local RandomOrbPositions = require(ReplicatedStorage.Shared.Orbs.RandomOrbPositions)
 local OrbSpawner = require(ReplicatedStorage.Shared.Orbs.OrbSpawner)
 local Promise = require(ReplicatedStorage.Shared.Core.Promise)
+local ProximityManager = require(ServerScriptService.Server.NPC.ProximityManager)
 
 -- Configuration
 local CONFIG = {
@@ -43,6 +45,7 @@ function OrbManager.Init()
     return Promise.new(function(resolve, reject)
         local success, err = pcall(function()
             print("OrbManager: Starting initialization...")
+            
             RandomOrbPositions.Init():andThen(function()
                 print("OrbManager: RandomOrbPositions initialized")
                 OrbManager._initialized = true
@@ -133,6 +136,8 @@ function OrbManager.SpawnRandomOrb()
     local orb = OrbSpawner.CreateOrb(position)
     if orb then
         activeOrbs[orb] = true
+        -- Notify ProximityManager
+        ProximityManager.TrackOrb(orb)
     else
         print("OrbManager: Failed to create orb at position:", position.X, position.Y, position.Z)
         OrbSpawner.RecordFailedSpawn()
@@ -143,6 +148,8 @@ end
 function OrbManager.RemoveOrb(orb)
     if activeOrbs[orb] then
         activeOrbs[orb] = nil
+        -- Notify ProximityManager
+        ProximityManager.UntrackOrb(orb)
         OrbSpawner.RemoveOrb(orb)
     end
 end

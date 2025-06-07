@@ -78,7 +78,7 @@ Interacts With:
   - [x] Implement position-based spawn logic
   - [x] Add spawn area management
 
-## 4. Animation Registry
+## 4. Animation Registry ✓
 ```lua
 --[[
 Name: AnimationRegistry
@@ -93,26 +93,26 @@ Interacts With:
 ```
 
 ### Tasks:
-- [ ] Create central registry for NPC animations
-- [ ] Define animation configurations:
-  - [ ] Walking/running animations
-  - [ ] Orb collection animations
-  - [ ] Squashing animations
-  - [ ] Death animations
-  - [ ] Idle animations
-  - [ ] Reaction animations
-- [ ] Add animation metadata:
-  - [ ] Priority levels
-  - [ ] Transition rules
-  - [ ] Size-based variations
-  - [ ] Duration and timing
-- [ ] Implement animation loading system:
-  - [ ] Lazy loading
-  - [ ] Preloading common animations
-  - [ ] Error handling
-- [ ] Add animation validation and testing
+- [x] Create central registry for NPC animations
+- [x] Define animation configurations:
+  - [x] Walking/running animations
+  - [x] Orb collection animations
+  - [x] Squashing animations
+  - [x] Death animations
+  - [x] Idle animations
+  - [x] Reaction animations
+- [x] Add animation metadata:
+  - [x] Priority levels
+  - [x] Transition rules
+  - [x] Size-based variations
+  - [x] Duration and timing
+- [x] Implement animation loading system:
+  - [x] Lazy loading
+  - [x] Preloading common animations
+  - [x] Error handling
+- [x] Add animation validation and testing
 
-## 5. Animation Controller
+## 5. Animation Controller ✓
 ```lua
 --[[
 Name: AnimationController
@@ -127,28 +127,28 @@ Interacts With:
 ```
 
 ### Tasks:
-- [ ] Create unified animation controller system:
-  - [ ] Animation loading and caching
-  - [ ] Transition management
-  - [ ] Priority handling
-  - [ ] Size-based adjustments
-- [ ] Implement animation playback:
-  - [ ] Play/stop/pause controls
-  - [ ] Speed adjustments
-  - [ ] Looping management
-  - [ ] Blend time control
-- [ ] Add state-based animation triggers:
-  - [ ] State enter/exit animations
-  - [ ] State-specific animations
-  - [ ] Transition animations
-- [ ] Support both NPC and player animations:
-  - [ ] Character type detection
-  - [ ] Type-specific animations
-  - [ ] Shared animation handling
-- [ ] Implement performance optimizations:
-  - [ ] Animation pooling
-  - [ ] Distance-based quality
-  - [ ] Update throttling
+- [x] Create unified animation controller system:
+  - [x] Animation loading and caching
+  - [x] Transition management
+  - [x] Priority handling
+  - [x] Size-based adjustments
+- [x] Implement animation playback:
+  - [x] Play/stop/pause controls
+  - [x] Speed adjustments
+  - [x] Looping management
+  - [x] Blend time control
+- [x] Add state-based animation triggers:
+  - [x] State enter/exit animations
+  - [x] State-specific animations
+  - [x] Transition animations
+- [x] Support both NPC and player animations:
+  - [x] Character type detection
+  - [x] Type-specific animations
+  - [x] Shared animation handling
+- [x] Implement performance optimizations:
+  - [x] Animation pooling
+  - [x] Distance-based quality
+  - [x] Update throttling
 
 ## 6. NPC State Machine
 ```lua
@@ -186,6 +186,13 @@ Interacts With:
   - [ ] State saving
   - [ ] State restoration
   - [ ] State debugging
+- [ ] Add proximity event system:
+  - [ ] Player entered NPC range
+  - [ ] Player left NPC range
+  - [ ] NPC entered player range
+  - [ ] NPC left player range
+  - [ ] Orb entered NPC range
+  - [ ] Orb left player range
 
 ## 7. NPC Registry
 ```lua
@@ -202,55 +209,65 @@ Interacts With:
 ```
 
 ### Tasks:
-- [ ] Create central registry for active NPCs
-- [ ] Implement efficient NPC lookup by:
-  - [ ] ID
-  - [ ] Position
-  - [ ] Size range
-  - [ ] State
-- [ ] Add NPC metadata tracking:
-  - [ ] Current state
-  - [ ] Target information
-  - [ ] Last known position
-  - [ ] Size history
-- [ ] Implement NPC filtering methods:
-  - [ ] Get NPCs in radius
-  - [ ] Get NPCs by size range
-  - [ ] Get NPCs by state
-- [ ] Add cleanup methods for removed NPCs
+- [x] Create central registry for active NPCs
+- [x] Implement efficient NPC lookup by:
+  - [x] ID
+  - [x] Position
+  - [x] Size (exact size value)
+  - [x] State
+- [x] Add NPC metadata tracking:
+  - [x] Current state
+  - [x] Target information
+  - [x] Last known position
+  - [x] Size history
+- [x] Implement NPC filtering methods:
+  - [x] Get NPCs in radius
+  - [x] Get NPCs by size
+  - [x] Get NPCs by state
+- [x] Add cleanup methods for removed NPCs
 
-## 8. Player Proximity Manager
+## 8. Proximity Manager
 ```lua
 --[[
-Name: PlayerProximityManager
+Name: ProximityManager
 Type: ModuleScript
 Location: ServerScriptService.Server.NPC.Proximity
-Description: Manages proximity detection between players and NPCs
-Interacts With:
-  - NPCRegistry: Gets NPC data for proximity checks
-  - NPCAIController: Provides proximity data for AI decisions
+Description: Manages proximity detection between NPCs, players, and orbs.
+             Provides spatial awareness for AI decision making and state transitions.
+             Optimizes performance through spatial partitioning and update batching.
+
+Key Responsibilities:
+    - Spatial partitioning for efficient proximity checks
+    - Proximity event broadcasting
+    - Performance optimization through update batching
+
+Dependencies:
+    - NPCRegistry: Required for NPC tracking and metadata
+    - Players Service: Required for player tracking
+    - OrbManager: Required for active orb tracking
+
+Consumers:
+    - NPCAIController: Uses proximity data for AI decisions
+    - NPCStateMachine: Uses proximity events for state transitions
 --]]
 ```
 
 ### Tasks:
-- [ ] Implement spatial partitioning for efficient proximity checks
-- [ ] Create proximity detection system:
-  - [ ] Player to NPC proximity
-  - [ ] NPC to NPC proximity
-  - [ ] Size-based threat detection
-- [ ] Add proximity event system:
-  - [ ] Player entered NPC range
-  - [ ] Player left NPC range
-  - [ ] NPC entered player range
-  - [ ] NPC left player range
-- [ ] Implement threat level calculation:
-  - [ ] Size difference analysis
-  - [ ] Distance weighting
-  - [ ] Group threat assessment
-- [ ] Add performance optimizations:
-  - [ ] Update throttling
-  - [ ] Distance-based update frequency
-  - [ ] Culling for far objects
+- [x] Implement spatial partitioning for efficient proximity checks
+- [x] Create proximity detection system:
+  - [x] Player to NPC proximity
+  - [x] NPC to NPC proximity
+  - [x] NPC to Orb proximity (using OrbManager's active orbs)
+- [x] Implement orb tracking:
+  - [x] Add OrbAdded/OrbRemoved events to EventManager
+  - [x] Fire events from OrbManager using EventManager
+  - [x] Subscribe to events in ProximityManager via EventManager
+  - [x] Update spatial partitioning on orb changes
+- [x] Add performance optimizations:
+  - [x] Update throttling
+  - [x] Distance-based update frequency
+  - [x] Culling for far objects
+  - [x] Batch proximity updates
 
 ## 9. NPC AI System
 ```lua
@@ -353,7 +370,7 @@ Interacts With:
 5. Animation Controller (Unified)
 6. NPC State Machine
 7. NPCRegistry
-8. PlayerProximityManager
+8. Proximity Manager
 9. Basic AI System
 10. Integration with Existing Systems
 11. Advanced AI Behaviors

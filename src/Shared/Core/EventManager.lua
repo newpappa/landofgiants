@@ -8,6 +8,7 @@ Interacts With:
   - SquashTracker: Squash count events
   - OrbPickupManager: Orb pickup events
   - SpeedTransformationHandler: Speed boost events
+  - ProximityManager: Orb tracking events
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -47,18 +48,29 @@ function EventManager:Initialize()
         self.Events.SpeedBoostEvent.Name = "SpeedBoostEvent"
         self.Events.SpeedBoostEvent.Parent = ReplicatedStorage
         print("EventManager: Created SpeedBoostEvent")
+
+        -- Create SquashCount event
+        self.Events.SquashCount = Instance.new("RemoteEvent")
+        self.Events.SquashCount.Name = "SquashCountRemote"
+        self.Events.SquashCount.Parent = ReplicatedStorage
+        print("EventManager: Created SquashCount event")
+
+        -- Create OrbAdded event
+        self.Events.OnOrbAdded = Instance.new("BindableEvent")
+        self.Events.OnOrbAdded.Name = "OnOrbAdded"
+        print("EventManager: Created OnOrbAdded event")
+
+        -- Create OrbRemoved event
+        self.Events.OnOrbRemoved = Instance.new("BindableEvent")
+        self.Events.OnOrbRemoved.Name = "OnOrbRemoved"
+        print("EventManager: Created OnOrbRemoved event")
     end
     
     -- Move existing SquashCount remote here
     local existingSquashRemote = ReplicatedStorage:FindFirstChild("SquashCountRemote")
-    if not existingSquashRemote then
-        if isServer then
-            self.Events.SquashCount = Instance.new("RemoteEvent")
-            self.Events.SquashCount.Name = "SquashCountRemote"
-            self.Events.SquashCount.Parent = ReplicatedStorage
-        end
-    else
+    if existingSquashRemote then
         self.Events.SquashCount = existingSquashRemote
+        print("EventManager: Found existing SquashCount event")
     end
     
     self._initialized = true
@@ -92,7 +104,7 @@ function EventManager:GetEvent(eventName)
 end
 
 function EventManager.Init()
-    EventManager:Initialize()
+    return EventManager:Initialize()
 end
 
 return EventManager 

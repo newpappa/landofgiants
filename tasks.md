@@ -1,70 +1,56 @@
-# NPCs
+# Promise Implementation Tasks
 
-## Project Goal
-Create a multiplayer game where players must survive in a world filled with AI-controlled giants. The giants will wander around collecting orbs to grow larger, and when they detect players, they'll switch to chase mode and attempt to stomp them. Players must avoid the giants while trying to survive as long as possible.
+## Audio System
+- [ ] `src/Shared/Audio/SoundRegistry.lua`
+  - Implement `Init()` function returning Promise
+  - Convert sound loading to use Promise-based async loading
+  - Add sound caching system
+  - Update `playSquashSound` and `playSuccessSound` to return Promises
+  - Add proper error handling with Promise rejection
 
-## Implementation Plan
+## Orbs System
+- [ ] `src/Shared/Orbs/OrbSpawner.lua`
+  - Implement `Init()` function returning Promise
+  - Convert orb creation to use Promise-based async loading
+  - Add proper error handling for spawn failures
+  - Update visual effects to use Promise-based timing
 
-### 1. NPC Spawner System
-- **Tasks:**
-  - Convert NPCGiantManager to NPCSpawner
-    - Add random spawn point selection
-    - Implement spawn rate controls
-    - Add spawn limits and cooldowns
+- [ ] `src/Shared/Orbs/OrbVisuals.lua`
+  - Implement `Init()` function returning Promise
+  - Convert visual setup to use Promise-based loading
+  - Add proper error handling for visual setup failures
 
-### 2. Proximity Detection System
-- **Tasks:**
-  - Create ProximityDetector to handle:
-    - Player detection for chase behavior
-    - Orb detection for collection behavior
-    - Spatial partitioning for performance
-    - Detection ranges and priorities
+- [ ] `src/Shared/Orbs/OrbPositionManager.lua`
+  - Implement `Init()` function returning Promise
+  - Convert position calculations to use Promise-based async operations
+  - Add proper error handling for position calculations
 
-### 3. Movement & AI
-- **Tasks:**
-  - Create NPCPathfinding system
-    - Implement path calculation
-    - Add movement target management
-  - Create NPCMovement system
-    - Add collision avoidance
-    - Implement movement states
-  - Create OrbCollectionBehavior
-    - Add orb targeting logic
-    - Implement collection animations
-  - Create NPCAnimationController
-    - Add run animation for movement
-    - Add jump animation for obstacles
-    - Add stomp animation for attacks
-    - Sync animations with movement states
+- [ ] `src/Shared/Orbs/OrbFTUCluster.lua`
+  - Implement `Init()` function returning Promise
+  - Convert FTU (First Time User) cluster setup to use Promise-based loading
+  - Add proper error handling for cluster setup
 
-### 4. Size Management System
-- **Tasks:**
-  - Adapt SizeStateMachine for NPCs
-    - Create NPC size tracking
-    - Handle size increases from:
-      - Orb collection
-      - Player squashing
-    - Implement size-based collision updates
-    - Handle size replication to clients
+- [ ] `src/Shared/Orbs/OrbCounter.lua`
+  - Implement `Init()` function returning Promise
+  - Convert counter operations to use Promise-based async updates
+  - Add proper error handling for counter operations
 
-### 5. Orb System Integration
-- **Tasks:**
-  - Modify OrbPickupManager to handle NPC collection
-    - Add NPC collection method
-    - Update orb respawn logic for NPC collection
-  - Integrate with existing systems
-    - Use OrbVisuals for collection effects
-    - Use SquashEffect for visual feedback
+## Implementation Notes
+1. Each module should:
+   - Follow the module structure from `init.md`
+   - Include proper header comments
+   - Implement the `Init()` function pattern
+   - Use Promises for async operations
+   - Handle errors appropriately
 
-Next up
-- [ ] Debug things on Roblox
-- [ ] You are N'N" big when player spawns in
-- [ ] Update description "Squish to grow. Hide in caves."
-- [ ] Save Size button gives player way to subscribe to monthly pass where we save their size
-- [ ] When player squishes another, squished explodes into many small NPCs
-- [ ] Add random NPC giants that go around squishing smaller NPCs
-- [ ] Leaderboards - top size live, all time, top squishers live, all time
-- [ ] Premium users get 1.25x growth! Add to description and as a feature.
+2. Dependencies:
+   - Use local Promise implementation from respective folders
+   - Document dependencies in module headers
+   - Handle missing dependencies gracefully
 
-3D
-- [ ] Bean stalks to hide in or trees
+3. Testing Requirements:
+   - Test initialization sequence
+   - Verify error handling
+   - Check resource cleanup
+   - Validate async operations
+   - Monitor performance impact

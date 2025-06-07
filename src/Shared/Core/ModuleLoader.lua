@@ -15,12 +15,33 @@ local function isPromise(value)
     return type(value) == "table" and type(value.andThen) == "function"
 end
 
+-- Helper function to get module dependencies
+local function getModuleDependencies(module, moduleName)
+    local dependencies = {}
+    
+    -- Check if the module has any require statements in its environment
+    for name, value in pairs(getfenv(module.Init)) do
+        if type(value) == "table" and value.__type == "ModuleScript" then
+            -- Only include dependencies that are in the same folder
+            if value.Parent and value.Parent == module.Parent then
+                local depName = value.Name
+                if depName and depName ~= moduleName then
+                    table.insert(dependencies, depName)
+                end
+            end
+        end
+    end
+    
+    return dependencies
+end
+
 -- Loads all modules from a folder in sequence
 function ModuleLoader.LoadFromFolder(folder)
     print("ModuleLoader: Starting to load from folder:", folder:GetFullName())
+    local modules = {}
     local initPromises = {}
     
-    -- Get all ModuleScripts in the folder
+    -- First pass: collect all modules
     for _, child in ipairs(folder:GetChildren()) do
         print("ModuleLoader: Found child:", child.Name, "Type:", child.ClassName)
         if child:IsA("ModuleScript") then
@@ -33,27 +54,56 @@ function ModuleLoader.LoadFromFolder(folder)
             end
             
             print("ModuleLoader: Successfully required module:", child.Name)
-            -- Check if module has Init function
             if type(module.Init) == "function" then
                 print("ModuleLoader: Found Init() function in:", child.Name)
-                local initResult = module.Init()
-                
-                -- Handle both Promise and non-Promise returns
-                if isPromise(initResult) then
-                    print("ModuleLoader: Module", child.Name, "returned a Promise")
-                    table.insert(initPromises, initResult)
-                else
-                    print("ModuleLoader: Module", child.Name, "returned a non-Promise result")
-                    -- Convert non-Promise result to Promise
-                    local promise = Promise.new(function(resolve)
-                        resolve(initResult)
-                    end)
-                    table.insert(initPromises, promise)
-                end
+                modules[child.Name] = {
+                    module = module,
+                    moduleScript = child,
+                    dependencies = getModuleDependencies(module, child.Name),
+                    initialized = false
+                }
             else
                 warn("ModuleLoader: Module", child.Name, "does not implement Init() function")
             end
         end
+    end
+    
+    -- Second pass: initialize modules in dependency order
+    local function initializeModule(moduleName)
+        local moduleInfo = modules[moduleName]
+        if not moduleInfo or moduleInfo.initialized then
+            return Promise.resolve()
+        end
+        
+        -- Initialize dependencies first
+        local dependencyPromises = {}
+        for _, dep in ipairs(moduleInfo.dependencies) do
+            if modules[dep] and not modules[dep].initialized then
+                table.insert(dependencyPromises, initializeModule(dep))
+            end
+        end
+        
+        return Promise.all(dependencyPromises):andThen(function()
+            print("ModuleLoader: Initializing module:", moduleName)
+            local initResult = moduleInfo.module.Init()
+            
+            if isPromise(initResult) then
+                print("ModuleLoader: Module", moduleName, "returned a Promise")
+                return initResult:andThen(function()
+                    moduleInfo.initialized = true
+                end)
+            else
+                print("ModuleLoader: Module", moduleName, "returned a non-Promise result")
+                moduleInfo.initialized = true
+                return Promise.resolve(initResult)
+            end
+        end)
+    end
+    
+    -- Initialize all modules
+    local initPromises = {}
+    for moduleName, _ in pairs(modules) do
+        table.insert(initPromises, initializeModule(moduleName))
     end
     
     print("ModuleLoader: Found", #initPromises, "modules to initialize in", folder.Name)
@@ -61,9 +111,7 @@ function ModuleLoader.LoadFromFolder(folder)
     -- If no promises to wait for, return resolved promise
     if #initPromises == 0 then
         print("ModuleLoader: No modules to initialize in", folder.Name)
-        return Promise.new(function(resolve)
-            resolve()
-        end)
+        return Promise.resolve()
     end
     
     -- Wait for all init promises to resolve
