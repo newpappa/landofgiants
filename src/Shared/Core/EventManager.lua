@@ -55,6 +55,12 @@ function EventManager:Initialize()
         self.Events.SquashCount.Parent = ReplicatedStorage
         print("EventManager: Created SquashCount event")
 
+        -- Create NPCStateChanged event
+        self.Events.NPCStateChanged = Instance.new("RemoteEvent")
+        self.Events.NPCStateChanged.Name = "NPCStateChanged"
+        self.Events.NPCStateChanged.Parent = ReplicatedStorage
+        print("EventManager: Created NPCStateChanged event")
+
         -- Create OrbAdded event
         self.Events.OnOrbAdded = Instance.new("BindableEvent")
         self.Events.OnOrbAdded.Name = "OnOrbAdded"

@@ -14,9 +14,18 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Dependencies
 local AnimationRegistry = require(ReplicatedStorage.Shared.Core.AnimationRegistry)
 local Promise = require(ReplicatedStorage.Shared.Core.Promise)
+local EventManager = require(ReplicatedStorage.Shared.Core.EventManager)
 
 local AnimationController = {
     _activeAnimations = {} -- Track active animations for each character
+}
+
+-- Map NPC states to animations
+local NPC_STATE_ANIMATIONS = {
+    ["OrbSeeking"] = "anim_walk",
+    ["PlayerHunting"] = "anim_run",
+    ["PlayerAttack"] = "anim_run",
+    ["Dead"] = "anim_standing"
 }
 
 -- Function to play an animation on a character
@@ -86,5 +95,19 @@ function AnimationController.PlayStandingAnimation(character)
         return AnimationController.PlayAnimation(character, "anim_standing", animData.metadata)
     end
 end
+
+-- Function to handle NPC state changes
+function AnimationController.HandleNPCStateChange(npc, newState)
+    local animId, metadata = AnimationRegistry.GetAnimationForNPCState(newState)
+    if not animId then
+        return
+    end
+    
+    AnimationController.PlayAnimation(npc, animId, metadata)
+end
+
+-- Set up NPC state change listener
+local NPCStateChanged = EventManager:GetEvent("NPCStateChanged")
+NPCStateChanged.OnClientEvent:Connect(AnimationController.HandleNPCStateChange)
 
 print("AnimationController: Script loaded") 

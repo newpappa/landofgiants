@@ -37,6 +37,20 @@ function Promise.new(executor)
     return self
 end
 
+-- Create a resolved Promise
+function Promise.resolve(value)
+    return Promise.new(function(resolve)
+        resolve(value)
+    end)
+end
+
+-- Create a rejected Promise
+function Promise.reject(reason)
+    return Promise.new(function(_, reject)
+        reject(reason)
+    end)
+end
+
 -- Handle Promise resolution
 function Promise:_runCallbacks()
     for _, callback in ipairs(self._callbacks) do

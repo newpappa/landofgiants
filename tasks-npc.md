@@ -156,43 +156,33 @@ Interacts With:
 Name: NPCStateMachine
 Type: ModuleScript
 Location: ServerScriptService.Server.NPC.AI
-Description: Manages NPC states and transitions
+Description: Tracks and reports NPC states. Does not make decisions about state changes.
+             Enforces cooldown between state changes to create lumbering, deliberate behavior.
 Interacts With:
-  - NPCAIController: Receives AI decisions
-  - NPCAnimationController: Triggers animations
-  - PlayerProximityManager: Gets proximity data
+  - NPCAIController: Receives state change requests
+  - NPCAnimationController: Reports state changes for animation triggers
+  - NPCRegistry: Updates NPC metadata with current state
 --]]
 ```
 
 ### Tasks:
-- [ ] Define core NPC states:
-  - [ ] Idle
-  - [ ] Wandering
-  - [ ] OrbSeeking
-  - [ ] PlayerHunting
-  - [ ] Fleeing
-  - [ ] Stunned
-  - [ ] Dead
-- [ ] Implement state transitions:
-  - [ ] Transition conditions
-  - [ ] Transition validation
-  - [ ] State history
-  - [ ] Cooldown management
-- [ ] Add state behaviors:
-  - [ ] State entry/exit actions
-  - [ ] State update logic
-  - [ ] State-specific parameters
-- [ ] Implement state persistence:
-  - [ ] State saving
-  - [ ] State restoration
-  - [ ] State debugging
-- [ ] Add proximity event system:
-  - [ ] Player entered NPC range
-  - [ ] Player left NPC range
-  - [ ] NPC entered player range
-  - [ ] NPC left player range
-  - [ ] Orb entered NPC range
-  - [ ] Orb left player range
+- [x] Define simplified NPC states:
+  - [x] OrbSeeking
+  - [x] PlayerHunting
+  - [x] PlayerAttack
+  - [x] Dead
+- [x] Implement state tracking:
+  - [x] Current state storage
+  - [x] State change history
+  - [x] State reporting methods
+- [x] Add state change cooldown:
+  - [x] Simple timestamp-based cooldown (5-10 seconds)
+  - [x] Cooldown enforcement
+  - [x] Cooldown reporting
+- [x] Implement state persistence:
+  - [x] State saving
+  - [x] State restoration
+  - [x] State debugging
 
 ## 7. NPC Registry
 ```lua
@@ -275,7 +265,29 @@ Consumers:
 Name: NPCAIController
 Type: ModuleScript
 Location: ServerScriptService.Server.NPC.AI
-Description: Controls NPC behavior and decision making
+Description: Controls NPC behavior and decision making based on size comparison with players
+             and proximity thresholds. Implements a state machine for predictable behavior
+             transitions with cooldowns to create deliberate, lumbering movement.
+
+Key Behaviors:
+    - Smaller NPCs flee from larger players
+    - Larger NPCs hunt and attack smaller players
+    - All NPCs seek orbs when not engaged with players
+    - State changes have cooldowns to prevent erratic behavior
+
+Distance Thresholds:
+    - HUNT_START: 30 studs - Start chasing when player gets this close
+    - ATTACK_RANGE: 10 studs - Start attack when this close
+    - FLEE_START: 20 studs - Start fleeing when player gets this close
+    - SAFE_DISTANCE: 40 studs - Consider safe when this far from player
+
+State Flow:
+    - ORB_SEEKING → PLAYER_HUNTING (when player gets within 30 studs)
+    - PLAYER_HUNTING → PLAYER_ATTACK (when within 10 studs)
+    - PLAYER_ATTACK → ORB_SEEKING (after 2-second attack cooldown)
+    - ORB_SEEKING → FLEEING (for smaller NPCs when player within 20 studs)
+    - FLEEING → ORB_SEEKING (when 40 studs from player)
+
 Interacts With:
   - NPCRegistry: Gets NPC data
   - NPCStateMachine: Sends state change requests
@@ -284,25 +296,42 @@ Interacts With:
 --]]
 ```
 
-### Tasks:
-- [ ] Implement decision making system:
-  - [ ] Target selection
-  - [ ] Path planning
-  - [ ] Threat assessment
-  - [ ] Group coordination
-- [ ] Add behavior strategies:
-  - [ ] Size-based behavior selection
-  - [ ] Group behavior coordination
-  - [ ] Resource management
-  - [ ] Risk assessment
-- [ ] Implement learning and adaptation:
-  - [ ] Success rate tracking
-  - [ ] Strategy adjustment
-  - [ ] Group behavior learning
-- [ ] Add performance optimizations:
-  - [ ] Decision caching
-  - [ ] Update frequency control
-  - [ ] Priority-based updates
+### Phase 1: Basic Movement & States ✓
+- [x] Implement simple direct movement:
+  - [x] Move towards current target (orb or player)
+  - [x] Basic collision avoidance
+  - [x] Movement speed based on state
+- [x] Basic state transitions:
+  - [x] OrbSeeking → PlayerHunting (when player closer)
+  - [x] PlayerHunting → PlayerAttack (when very close)
+  - [x] PlayerAttack → OrbSeeking (after attack cooldown)
+  - [x] OrbSeeking → Fleeing (for smaller NPCs)
+  - [x] Fleeing → OrbSeeking (when safe)
+- [x] Target selection:
+  - [x] Find nearest orb
+  - [x] Find nearest player
+  - [x] Compare distances for state decisions
+  - [x] Check player size for flee decisions
+
+### Phase 2: Improved Movement
+- [ ] Add waypoint-based navigation:
+  - [ ] Define waypoint system
+  - [ ] Path following logic
+  - [ ] Waypoint selection
+- [ ] Enhanced obstacle avoidance:
+  - [ ] Dynamic obstacle detection
+  - [ ] Path recalculation
+  - [ ] Stuck detection and recovery
+- [ ] Improved target selection:
+  - [ ] Better distance calculations
+  - [ ] Target priority system
+  - [ ] Target switching logic
+
+### Future Phases (Not Implemented Yet)
+- [ ] Group coordination
+- [ ] Advanced threat assessment
+- [ ] Learning and adaptation
+- [ ] Performance optimizations
 
 ## 10. Integration with Existing Systems
 
@@ -315,35 +344,36 @@ Interacts With:
 ## 11. Performance Considerations
 
 ### Tasks:
-- [ ] Use spatial partitioning for NPC updates
-- [ ] Implement NPC culling when far from players
-- [ ] Batch NPC updates to reduce server load
+- [x] Use spatial partitioning for NPC updates
+- [x] Implement NPC culling when far from players
+- [x] Batch NPC updates to reduce server load
 - [ ] Use efficient pathfinding with waypoints
 
 ## 12. NPC Behavior Details
 
 ### Tasks:
-- [ ] Implement size-based behavior:
-  - [ ] Small NPCs (< 5x): Focus on orb collection
-  - [ ] Medium NPCs (5-10x): Balance orb collection and player hunting
-  - [ ] Large NPCs (> 10x): Focus on player hunting
-- [ ] Add proximity-based reactions:
-  - [ ] Flee from players 2x larger
-  - [ ] Hunt players 2x smaller
-  - [ ] Ignore players of similar size
-- [ ] Implement orb collection behavior:
-  - [ ] Prioritize closest orbs
-  - [ ] Avoid dangerous areas
-  - [ ] Share orb locations with nearby NPCs
+- [x] Implement size-based behavior:
+  - [x] Small NPCs: Flee from larger players
+  - [x] Large NPCs: Hunt and attack smaller players
+  - [x] All NPCs: Seek orbs when not engaged
+- [x] Add proximity-based reactions:
+  - [x] Flee from larger players (within 20 studs)
+  - [x] Hunt smaller players (within 30 studs)
+  - [x] Attack when very close (within 10 studs)
+  - [x] Return to orb seeking when safe
+- [x] Implement orb collection behavior:
+  - [x] Prioritize closest orbs
+  - [x] Avoid dangerous areas
+  - [x] Share orb locations with nearby NPCs
 
 ## 13. Visual and Audio
 
 ### Tasks:
-- [ ] Add NPC-specific animations:
-  - [ ] Walking/running
-  - [ ] Orb collection
-  - [ ] Squashing
-  - [ ] Death
+- [x] Add NPC-specific animations:
+  - [x] Walking/running
+  - [x] Orb collection
+  - [x] Squashing
+  - [x] Death
 - [ ] Implement visual effects:
   - [ ] Growth particles
   - [ ] Squash effects
@@ -357,9 +387,9 @@ Interacts With:
 ## 14. Testing and Balancing
 
 ### Tasks:
-- [ ] Test NPC behavior in various scenarios
-- [ ] Balance NPC population and spawn rates
-- [ ] Tune AI parameters for engaging gameplay
+- [x] Test NPC behavior in various scenarios
+- [x] Balance NPC population and spawn rates
+- [x] Tune AI parameters for engaging gameplay
 - [ ] Monitor server performance
 
 ## Implementation Order:

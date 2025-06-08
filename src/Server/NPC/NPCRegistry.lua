@@ -149,8 +149,12 @@ function NPCRegistry.GetNPCsInRadius(position, radius)
 end
 
 -- Update NPC state
-function NPCRegistry.UpdateNPCState(npc, newState)
-    if not npc or not newState then return end
+function NPCRegistry.UpdateNPCState(npcId, newState)
+    local npc = NPCRegistry.GetNPCById(npcId)
+    if not npc or not newState then 
+        warn("[NPCRegistry] Failed to update state - Invalid NPC ID or state:", npcId, newState)
+        return 
+    end
     
     local oldState = npc:GetAttribute("State") or "Idle"
     
@@ -172,6 +176,7 @@ function NPCRegistry.UpdateNPCState(npc, newState)
     
     -- Update attribute
     npc:SetAttribute("State", newState)
+    print("[NPCRegistry] Updated state for NPC", npcId, "from", oldState, "to", newState)
 end
 
 -- Update NPC size
@@ -227,11 +232,11 @@ function NPCRegistry.Init()
             
             -- Set up event handlers
             NPCRegistry.OnNPCRegistered = function(npc)
-                print("[NPCRegistry] NPC registered:", npc.Name)
+                print("[NPCRegistry] NPC registered:", npc:GetAttribute("NPCId"))
             end
             
             NPCRegistry.OnNPCUnregistered = function(npc)
-                print("[NPCRegistry] NPC unregistered:", npc.Name)
+                print("[NPCRegistry] NPC unregistered:", npc:GetAttribute("NPCId"))
             end
             
             NPCRegistry._initialized = true

@@ -71,8 +71,14 @@ function ModuleLoader.LoadFromFolder(folder)
     -- Second pass: initialize modules in dependency order
     local function initializeModule(moduleName)
         local moduleInfo = modules[moduleName]
-        if not moduleInfo or moduleInfo.initialized then
-            return Promise.resolve()
+        if not moduleInfo then
+            print("ModuleLoader: Module", moduleName, "not found in module list")
+            return Promise.resolve(true)
+        end
+        
+        if moduleInfo.initialized then
+            print("ModuleLoader: Module", moduleName, "already initialized, skipping")
+            return Promise.resolve(true)
         end
         
         -- Initialize dependencies first
@@ -83,6 +89,7 @@ function ModuleLoader.LoadFromFolder(folder)
             end
         end
         
+        -- Wait for all dependencies to complete
         return Promise.all(dependencyPromises):andThen(function()
             print("ModuleLoader: Initializing module:", moduleName)
             local initResult = moduleInfo.module.Init()
@@ -91,19 +98,32 @@ function ModuleLoader.LoadFromFolder(folder)
                 print("ModuleLoader: Module", moduleName, "returned a Promise")
                 return initResult:andThen(function()
                     moduleInfo.initialized = true
+                    print("ModuleLoader: Module", moduleName, "initialization complete")
+                    return true
+                end):catch(function(err)
+                    warn("ModuleLoader: Error initializing module", moduleName, ":", err)
+                    return false
                 end)
             else
                 print("ModuleLoader: Module", moduleName, "returned a non-Promise result")
                 moduleInfo.initialized = true
-                return Promise.resolve(initResult)
+                print("ModuleLoader: Module", moduleName, "initialization complete")
+                return Promise.resolve(true)
             end
+        end):catch(function(err)
+            warn("ModuleLoader: Error in dependency chain for", moduleName, ":", err)
+            return false
         end)
     end
     
     -- Initialize all modules
     local initPromises = {}
-    for moduleName, _ in pairs(modules) do
-        table.insert(initPromises, initializeModule(moduleName))
+    for moduleName, moduleInfo in pairs(modules) do
+        if not moduleInfo.initialized then
+            table.insert(initPromises, initializeModule(moduleName))
+        else
+            print("ModuleLoader: Module", moduleName, "already initialized before ModuleLoader")
+        end
     end
     
     print("ModuleLoader: Found", #initPromises, "modules to initialize in", folder.Name)
@@ -111,15 +131,29 @@ function ModuleLoader.LoadFromFolder(folder)
     -- If no promises to wait for, return resolved promise
     if #initPromises == 0 then
         print("ModuleLoader: No modules to initialize in", folder.Name)
-        return Promise.resolve()
+        return Promise.resolve(true)
     end
     
     -- Wait for all init promises to resolve
     print("ModuleLoader: Waiting for", #initPromises, "modules to initialize in", folder.Name)
-    return Promise.all(initPromises):andThen(function()
-        print("ModuleLoader: All modules initialized successfully in", folder.Name)
+    return Promise.all(initPromises):andThen(function(results)
+        local allSuccess = true
+        for i, success in ipairs(results) do
+            if not success then
+                allSuccess = false
+                break
+            end
+        end
+        
+        if allSuccess then
+            print("ModuleLoader: All modules initialized successfully in", folder.Name)
+        else
+            warn("ModuleLoader: Some modules failed to initialize in", folder.Name)
+        end
+        return allSuccess
     end):catch(function(err)
         warn("ModuleLoader: Error initializing modules in", folder.Name, ":", err)
+        return false
     end)
 end
 

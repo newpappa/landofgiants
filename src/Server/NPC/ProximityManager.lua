@@ -36,14 +36,14 @@ local ProximityManager = {
     _players = {}, -- Active players being tracked
     _orbs = {}, -- Active orbs being tracked
     _spatialGrid = {}, -- Spatial partitioning grid
-    _updateFrequency = 0.1, -- How often to update proximity checks (in seconds)
+    _updateFrequency = 1.0, -- How often to update proximity checks (in seconds)
     _lastUpdate = 0,
 }
 
 -- Configuration
 local CONFIG = {
     GRID_CELL_SIZE = 20, -- Size of each grid cell
-    UPDATE_FREQUENCY = 0.1, -- How often to update proximity checks
+    UPDATE_FREQUENCY = 1.0, -- How often to update proximity checks
     MAX_UPDATE_DISTANCE = 100, -- Maximum distance to check for proximity
     DEBUG_LOGGING = false -- Control debug logging
 }

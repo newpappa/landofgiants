@@ -23,7 +23,8 @@ local NPCModel = ReplicatedStorage.Models:WaitForChild("R15 Dummy")
 
 local NPCFactory = {
     _initialized = false,
-    _activeNPCs = {}
+    _activeNPCs = {},
+    _nextNPCId = 1
 }
 
 -- Function to create a new NPC
@@ -51,10 +52,15 @@ function NPCFactory.CreateNPC(spawnPosition)
     -- Scale the NPC
     npc:ScaleTo(sizeData.scale)
     
+    -- Generate unique NPC ID
+    local npcId = "NPC_" .. NPCFactory._nextNPCId
+    NPCFactory._nextNPCId = NPCFactory._nextNPCId + 1
+    
     -- Add NPC-specific attributes
     npc:SetAttribute("IsNPC", true)
+    npc:SetAttribute("NPCId", npcId)
     npc:SetAttribute("SpawnTime", os.time())
-    npc:SetAttribute("CurrentState", "Idle")
+    npc:SetAttribute("CurrentState", "OrbSeeking")
     npc:SetAttribute("Size", sizeData.scale)
     npc:SetAttribute("VisualHeight", sizeData.visualHeight)
     
@@ -66,10 +72,10 @@ function NPCFactory.CreateNPC(spawnPosition)
     NPCFactory._activeNPCs[npc] = {
         sizeData = sizeData,
         lastPosition = spawnPosition,
-        state = "Idle"
+        state = "OrbSeeking"
     }
     
-    print("NPCFactory: Created NPC at size", sizeData.scale)
+    print("NPCFactory: Created NPC", npcId, "at size", sizeData.scale)
     return npc
 end
 
@@ -159,20 +165,15 @@ function NPCFactory.Init()
 
     return Promise.new(function(resolve, reject)
         local success, err = pcall(function()
-            -- Get the NPC model
-            NPCFactory.NPCModel = ReplicatedStorage.Models:WaitForChild("R15 Dummy")
-            
-            -- Initialize state
-            NPCFactory._activeNPCs = {}
+            print("NPCFactory: Initializing...")
             NPCFactory._initialized = true
-            
-            print("NPCFactory: Initialized successfully")
         end)
 
         if success then
+            print("NPCFactory initialized!")
             resolve()
         else
-            warn("NPCFactory: Failed to initialize:", err)
+            warn("NPCFactory: Failed to initialize -", err)
             reject(err)
         end
     end)

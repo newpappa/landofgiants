@@ -39,35 +39,40 @@ end
 
 function RandomNPCPositions.Init()
     if RandomNPCPositions._initialized then
-        print("RandomNPCPositions: Already initialized")
+        print("RandomNPCPositions: Already initialized, returning resolved Promise")
         return Promise.resolve()
     end
     
+    print("RandomNPCPositions: Starting initialization...")
     return Promise.new(function(resolve, reject)
-        local success, err = pcall(function()
-            print("RandomNPCPositions: Starting initialization...")
-            
+        local success, initResult = pcall(function()
             -- Initialize PositionSampler first
             print("RandomNPCPositions: Initializing PositionSampler...")
-            PositionSampler.Init():andThen(function()
-                print("RandomNPCPositions: PositionSampler initialized")
-                
-                -- Generate initial grid positions
-                generateGridPositions()
-                
-                RandomNPCPositions._initialized = true
-                print("RandomNPCPositions: Initialization complete")
-                resolve()
-            end):catch(function(err)
-                print("RandomNPCPositions: PositionSampler initialization failed:", err)
-                reject(err)
-            end)
+            return PositionSampler.Init()
         end)
         
         if not success then
-            print("RandomNPCPositions: Initialization failed:", err)
-            reject(err)
+            print("RandomNPCPositions: Failed to start PositionSampler initialization:", initResult)
+            reject(initResult)
+            return
         end
+        
+        -- Now handle the Promise chain
+        initResult:andThen(function()
+            print("RandomNPCPositions: PositionSampler initialized")
+            
+            -- Generate initial grid positions
+            print("RandomNPCPositions: Generating initial grid positions...")
+            local positions, validCount = generateGridPositions()
+            print("RandomNPCPositions: Generated", validCount, "valid positions")
+            
+            RandomNPCPositions._initialized = true
+            print("RandomNPCPositions: Initialization complete")
+            resolve()
+        end):catch(function(err)
+            print("RandomNPCPositions: PositionSampler initialization failed:", err)
+            reject(err)
+        end)
     end)
 end
 

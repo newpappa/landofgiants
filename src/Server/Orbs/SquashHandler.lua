@@ -16,6 +16,9 @@ local SquashHandler = {}
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Modules
+local Promise = require(ReplicatedStorage.Shared.Core.Promise)
+
 print("SquashHandler: Module script loaded")
 
 -- Create the RemoteEvent for squash communication

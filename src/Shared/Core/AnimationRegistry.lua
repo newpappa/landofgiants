@@ -50,7 +50,11 @@ local animationDefinitions = {
         metadata = {
             priority = Enum.AnimationPriority.Movement,
             looped = true,
-            fadeTime = 0.2
+            fadeTime = 0.2,
+            npcStates = {
+                "OrbSeeking",
+                "PlayerHunting"
+            }
         }
     },
     
@@ -61,7 +65,11 @@ local animationDefinitions = {
         metadata = {
             priority = Enum.AnimationPriority.Movement,
             looped = true,
-            fadeTime = 0.2
+            fadeTime = 0.2,
+            npcStates = {
+                "OrbSeeking",
+                "PlayerHunting"
+            }
         }
     },
     
@@ -72,7 +80,10 @@ local animationDefinitions = {
         metadata = {
             priority = Enum.AnimationPriority.Movement,
             looped = true,
-            fadeTime = 0.2
+            fadeTime = 0.2,
+            npcStates = {
+                "PlayerHunting"
+            }
         }
     },
     
@@ -83,7 +94,10 @@ local animationDefinitions = {
         metadata = {
             priority = Enum.AnimationPriority.Movement,
             looped = false,
-            fadeTime = 0.1
+            fadeTime = 0.1,
+            npcStates = {
+                "PlayerAttack"
+            }
         }
     }
 }
@@ -191,6 +205,16 @@ function AnimationRegistry.Init()
     end)
 
     return _initPromise
+end
+
+-- Function to get animation for NPC state
+function AnimationRegistry.GetAnimationForNPCState(state)
+    for animId, animData in pairs(animationDefinitions) do
+        if animData.metadata.npcStates and table.find(animData.metadata.npcStates, state) then
+            return getAnimationId(animData), animData.metadata
+        end
+    end
+    return nil, nil
 end
 
 return AnimationRegistry 

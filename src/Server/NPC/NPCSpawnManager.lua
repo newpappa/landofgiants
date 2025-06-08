@@ -6,6 +6,7 @@ Description: Manages NPC population and respawning
 Interacts With:
   - NPCFactory: Creates new NPCs
   - NPCAIController: Assigns AI to new NPCs
+  - NPCRegistry: Tracks active NPCs
   - RandomNPCPositions: Uses position management system
 --]]
 
@@ -15,10 +16,15 @@ local ServerScriptService = game:GetService("ServerScriptService")
 -- Load dependencies
 local NPCFactory = require(ServerScriptService.Server.NPC.NPCFactory)
 local RandomNPCPositions = require(ServerScriptService.Server.NPC.RandomNPCPositions)
+local NPCRegistry = require(ServerScriptService.Server.NPC.NPCRegistry)
 local Promise = require(ReplicatedStorage.Shared.Core.Promise)
 
 local NPCSpawnManager = {
-    _initialized = false
+    _initialized = false,
+    _spawnCooldowns = {}, -- Track respawn cooldowns
+    _minNPCs = 10,
+    _maxNPCs = 15,
+    _spawnCooldown = 30 -- Seconds between respawns
 }
 
 -- Function to get a random spawn position
@@ -48,11 +54,21 @@ function NPCSpawnManager.SpawnNPC()
     local npc = NPCFactory.CreateNPC(spawnPosition)
     
     if npc then
-        NPCSpawnManager._activeNPCs[npc] = {
-            spawnTime = os.time(),
-            lastPosition = spawnPosition
-        }
-        print("NPCSpawnManager: Spawned new NPC")
+        -- Set up death handling
+        local humanoid = npc:WaitForChild("Humanoid")
+        humanoid.Died:Connect(function()
+            -- Wait for death animation/ragdoll
+            task.delay(5, function()
+                if npc and npc:IsDescendantOf(workspace) then
+                    NPCSpawnManager.RemoveNPC(npc)
+                end
+            end)
+        end)
+        
+        -- Register with NPCRegistry instead of tracking locally
+        NPCRegistry.RegisterNPC(npc)
+        local npcId = npc:GetAttribute("NPCId")
+        print("NPCSpawnManager: Spawned new NPC", npcId, "(Total NPCs:", NPCSpawnManager.GetNPCCount(), ")")
     end
     
     return npc
@@ -65,20 +81,18 @@ function NPCSpawnManager.RemoveNPC(npc)
         return
     end
 
-    if not NPCSpawnManager._activeNPCs[npc] then
-        warn("NPCSpawnManager: Attempted to remove non-existent NPC")
-        return
-    end
+    local npcId = npc:GetAttribute("NPCId")
+    if not npcId then return end
 
     -- Add to spawn cooldown
-    NPCSpawnManager._spawnCooldowns[npc] = os.time()
+    NPCSpawnManager._spawnCooldowns[npcId] = os.time()
     
-    -- Remove from active NPCs
-    NPCSpawnManager._activeNPCs[npc] = nil
+    -- Unregister from NPCRegistry
+    NPCRegistry.UnregisterNPC(npc)
     
     -- Remove the NPC
     NPCFactory.RemoveNPC(npc)
-    print("NPCSpawnManager: Removed NPC")
+    print("NPCSpawnManager: Removed NPC", npcId, "(Total NPCs:", NPCSpawnManager.GetNPCCount(), ")")
 end
 
 -- Function to get current NPC count
@@ -87,7 +101,12 @@ function NPCSpawnManager.GetNPCCount()
         warn("NPCSpawnManager: Attempted to get NPC count before initialization")
         return 0
     end
-    return #NPCSpawnManager._activeNPCs
+    
+    local count = 0
+    for _ in pairs(NPCRegistry.GetAllNPCs()) do
+        count = count + 1
+    end
+    return count
 end
 
 -- Function to check and maintain NPC population
@@ -102,10 +121,34 @@ function NPCSpawnManager.UpdatePopulation()
     -- Check if we need to spawn more NPCs
     if currentCount < NPCSpawnManager._minNPCs then
         local toSpawn = NPCSpawnManager._minNPCs - currentCount
-        print("NPCSpawnManager: Spawning", toSpawn, "NPCs to maintain minimum population")
+        print("NPCSpawnManager: Spawning", toSpawn, "NPCs to maintain minimum population (Current:", currentCount, ")")
         
         for i = 1, toSpawn do
             NPCSpawnManager.SpawnNPC()
+        end
+    end
+    
+    -- Check if we need to remove excess NPCs
+    if currentCount > NPCSpawnManager._maxNPCs then
+        local toRemove = currentCount - NPCSpawnManager._maxNPCs
+        print("NPCSpawnManager: Removing", toRemove, "excess NPCs to maintain maximum population (Current:", currentCount, ")")
+        
+        -- Get all NPCs and sort by spawn time (oldest first)
+        local allNPCs = NPCRegistry.GetAllNPCs()
+        local npcsToRemove = {}
+        for _, npc in pairs(allNPCs) do
+            table.insert(npcsToRemove, {
+                npc = npc,
+                spawnTime = npc:GetAttribute("SpawnTime") or 0
+            })
+        end
+        table.sort(npcsToRemove, function(a, b) return a.spawnTime < b.spawnTime end)
+        
+        -- Remove oldest NPCs first
+        for i = 1, toRemove do
+            if npcsToRemove[i] then
+                NPCSpawnManager.RemoveNPC(npcsToRemove[i].npc)
+            end
         end
     end
     
@@ -135,19 +178,19 @@ function NPCSpawnManager.Init()
                 print("NPCSpawnManager: Initializing NPCFactory...")
                 return NPCFactory.Init()
             end):andThen(function()
+                -- Initialize NPCRegistry
+                print("NPCSpawnManager: Initializing NPCRegistry...")
+                return NPCRegistry.Init()
+            end):andThen(function()
                 -- Initialize all state
-                NPCSpawnManager._activeNPCs = {}
                 NPCSpawnManager._spawnCooldowns = {}
-                NPCSpawnManager._minNPCs = 10
-                NPCSpawnManager._maxNPCs = 15
-                NPCSpawnManager._spawnCooldown = 30 -- Seconds between respawns
                 NPCSpawnManager._initialized = true
                 
-                -- Start population maintenance
-                task.spawn(function()
-                    while true do
+                -- Start population maintenance after a short delay to ensure everything is ready
+                task.delay(1, function()
+                    while NPCSpawnManager._initialized do
                         NPCSpawnManager.UpdatePopulation()
-                        task.wait(5) -- Check every 5 seconds
+                        task.wait(1)
                     end
                 end)
                 
