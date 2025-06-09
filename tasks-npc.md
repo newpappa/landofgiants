@@ -392,6 +392,47 @@ Interacts With:
 - [x] Tune AI parameters for engaging gameplay
 - [ ] Monitor server performance
 
+## 15. NPC Movement System Refactoring ✓
+```lua
+--[[
+Name: NPCMover
+Type: LocalScript
+Location: StarterPlayer.StarterPlayerScripts.Client.NPC
+Description: Handles NPC movement execution based on state changes
+Interacts With:
+  - NPCStateMachine: Receives state changes for movement updates
+  - AnimationController: Coordinates with animations
+--]]
+```
+
+### Tasks:
+- [x] Refactor NPCAIController:
+  - [x] Remove direct movement execution
+  - [x] Use attributes for target information
+  - [x] Focus purely on AI decision making
+  - [x] Update state machine integration
+- [x] Create client-side NPCMover:
+  - [x] Move movement logic to client
+  - [x] Listen for state changes
+  - [x] Handle movement execution
+  - [x] Coordinate with animations
+- [x] Update state management:
+  - [x] Use attributes for target tracking
+  - [x] Ensure proper state synchronization
+  - [x] Handle state change events
+- [x] Improve architecture:
+  - [x] Better separation of concerns
+  - [x] Consistent event-based communication
+  - [x] Cleaner state management
+  - [x] More maintainable code structure
+
+### Benefits:
+- Cleaner separation between AI decisions and movement execution
+- Better performance by moving movement to client
+- More consistent architecture with animation system
+- Easier to maintain and extend
+- Better state management through attributes
+
 ## Implementation Order:
 1. Folder Structure Setup ✓
 2. Shared Types and Configs ✓

@@ -22,12 +22,6 @@ local ProximityManager = require(ServerScriptService.Server.NPC.ProximityManager
 
 -- Constants
 local HUNT_TIMEOUT = 10 -- seconds to continue hunting before considering orbs
-local MOVEMENT_SPEEDS = {
-    ORB_SEEKING = 16,
-    PLAYER_HUNTING = 20,
-    PLAYER_ATTACK = 24,
-    FLEEING = 28
-}
 
 -- Distance thresholds
 local DISTANCES = {
@@ -94,25 +88,12 @@ local function shouldFleeFromPlayer(npc, player)
     return playerSize > npcSize -- Flee if player is larger
 end
 
-local function moveTowardsTarget(npc, target, isFleeing)
-    if not npc or not target then return end
-    
-    local humanoid = npc:FindFirstChild("Humanoid")
-    if not humanoid then return end
-    
-    local targetPosition = target:GetPivot().Position
-    local currentState = NPCStateMachine.GetState(npc:GetAttribute("NPCId"))
-    local speed = MOVEMENT_SPEEDS[currentState] or MOVEMENT_SPEEDS.ORB_SEEKING
-    
-    if isFleeing then
-        -- Move away from target
-        local npcPosition = npc:GetPivot().Position
-        local direction = (npcPosition - targetPosition).Unit
-        targetPosition = npcPosition + (direction * 50) -- Move 50 studs away
+local function updateNPCTarget(npc, target)
+    if target then
+        npc:SetAttribute("CurrentTarget", target.Name)
+    else
+        npc:SetAttribute("CurrentTarget", nil)
     end
-    
-    humanoid:MoveTo(targetPosition)
-    humanoid.WalkSpeed = speed
 end
 
 -- Public API
@@ -202,6 +183,7 @@ function NPCAIController.UnregisterNPC(npc)
 
     NPCAIController._activeNPCs[npcId] = nil
     NPCStateMachine.CleanupNPC(npcId)
+    updateNPCTarget(npc, nil)
     print("NPCAIController: Unregistered NPC", npcId)
 end
 
@@ -226,12 +208,13 @@ function NPCAIController.UpdateAllNPCs()
                 if currentState ~= "FLEEING" then
                     print("NPCAIController: NPC", npcId, "fleeing from larger player at distance", playerDistance)
                     NPCStateMachine.ChangeState(npcId, "FLEEING")
+                    updateNPCTarget(npc, nearestPlayer)
                 end
-                moveTowardsTarget(npc, nearestPlayer, true) -- Move away from player
                 continue
             elseif currentState == "FLEEING" and playerDistance > DISTANCES.SAFE_DISTANCE then
                 print("NPCAIController: NPC", npcId, "safe from player, returning to orb seeking")
                 NPCStateMachine.ChangeState(npcId, "ORB_SEEKING")
+                updateNPCTarget(npc, nearestOrb)
             end
         end
         
@@ -241,17 +224,17 @@ function NPCAIController.UpdateAllNPCs()
                 if currentState ~= "PLAYER_ATTACK" then
                     print("NPCAIController: NPC", npcId, "attacking player at distance", playerDistance)
                     NPCStateMachine.ChangeState(npcId, "PLAYER_ATTACK")
+                    updateNPCTarget(npc, nearestPlayer)
                     data.lastAttackTime = os.time()
                 end
-                moveTowardsTarget(npc, nearestPlayer)
                 continue
             elseif playerDistance < DISTANCES.HUNT_START then
                 if currentState ~= "PLAYER_HUNTING" then
                     print("NPCAIController: NPC", npcId, "hunting player at distance", playerDistance)
                     NPCStateMachine.ChangeState(npcId, "PLAYER_HUNTING")
+                    updateNPCTarget(npc, nearestPlayer)
                     data.huntStartTime = os.time()
                 end
-                moveTowardsTarget(npc, nearestPlayer)
                 continue
             end
         end
@@ -261,12 +244,14 @@ function NPCAIController.UpdateAllNPCs()
             if os.time() - data.huntStartTime > HUNT_TIMEOUT then
                 print("NPCAIController: NPC", npcId, "hunt timeout, returning to orb seeking")
                 NPCStateMachine.ChangeState(npcId, "ORB_SEEKING")
+                updateNPCTarget(npc, nearestOrb)
                 data.huntStartTime = nil
             end
         elseif currentState == "PLAYER_ATTACK" and data.lastAttackTime then
             if os.time() - data.lastAttackTime > 2 then -- 2 second attack cooldown
                 print("NPCAIController: NPC", npcId, "attack complete, returning to orb seeking")
                 NPCStateMachine.ChangeState(npcId, "ORB_SEEKING")
+                updateNPCTarget(npc, nearestOrb)
                 data.lastAttackTime = nil
             end
         end
@@ -276,9 +261,10 @@ function NPCAIController.UpdateAllNPCs()
             if nearestOrb then
                 print("NPCAIController: NPC", npcId, "seeking orb at distance", orbDistance)
                 data.target = nearestOrb
-                moveTowardsTarget(npc, nearestOrb)
+                updateNPCTarget(npc, nearestOrb)
             else
                 print("NPCAIController: NPC", npcId, "no targets found")
+                updateNPCTarget(npc, nil)
             end
         end
     end
