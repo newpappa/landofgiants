@@ -15,21 +15,47 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EventManager = require(ReplicatedStorage.Shared.Core.EventManager)
 
 -- Constants
-local DISPLAY_DISTANCE = 100 -- Increased viewing distance
-local LABEL_OFFSET = Vector3.new(0, 3, 0) -- Height above NPC
+local DISPLAY_DISTANCE = 600 -- Increased viewing distance
+local LABEL_OFFSET = Vector3.new(0, 5, 0) -- Height above NPC head
 local LABEL_SIZE = UDim2.new(0, 100, 0, 50)
+local HUMANOID_ROOT_PART_TIMEOUT = 10 -- Increased timeout to 10 seconds
+local MAX_RETRIES = 3 -- Maximum number of retries for failed NPCs
 
 -- Add debug print for initialization
 print("NPCOverheadSizeDisplay: Starting initialization...")
 
 -- Storage
 local npcLabels = {} -- {npc = {billboardGui = gui, textLabel = label}}
+local failedNPCs = {} -- {npc = retryCount}
 
 -- Debug function to print NPC attributes
 local function printNPCAttributes(npc)
     print("NPC Attributes for", npc.Name)
     for _, attr in ipairs(npc:GetAttributes()) do
         print("  ", attr, "=", npc:GetAttribute(attr))
+    end
+end
+
+-- Update a label's text
+local function updateLabel(npc)
+    local label = npcLabels[npc]
+    if not label then return end
+    
+    local size = npc:GetAttribute("Size") or 1
+    local state = npc:GetAttribute("CurrentState") or "Unknown"
+    local npcId = npc:GetAttribute("NPCId") or "Unknown"
+    
+    label.textLabel.Text = string.format("%s\nSize: %.2f\nState: %s", 
+        npcId, size, state)
+end
+
+-- Remove a label
+local function removeLabel(npc)
+    local label = npcLabels[npc]
+    if label then
+        print("NPCOverheadSizeDisplay: Removing label for NPC:", npc:GetAttribute("NPCId"))
+        label.billboardGui:Destroy()
+        npcLabels[npc] = nil
     end
 end
 
@@ -45,6 +71,11 @@ local function findNPCsInModel(model)
     -- Recursively check children
     for _, child in ipairs(model:GetChildren()) do
         if child:IsA("Model") then
+            -- Check if child is an NPC
+            if child:GetAttribute("IsNPC") then
+                table.insert(foundNPCs, child)
+            end
+            -- Recursively check child's children
             local childNPCs = findNPCsInModel(child)
             for _, npc in ipairs(childNPCs) do
                 table.insert(foundNPCs, npc)
@@ -65,10 +96,13 @@ local function createLabel(npc)
     print("NPCOverheadSizeDisplay: Creating label for NPC:", npc:GetAttribute("NPCId"))
     printNPCAttributes(npc)
     
+    -- Wait for HumanoidRootPart first, just like in NPCFactory
+    local rootPart = npc:WaitForChild("HumanoidRootPart")
+    
     local billboardGui = Instance.new("BillboardGui")
     billboardGui.Size = LABEL_SIZE
     billboardGui.StudsOffset = LABEL_OFFSET
-    billboardGui.Adornee = npc:WaitForChild("HumanoidRootPart")
+    billboardGui.Adornee = rootPart
     billboardGui.AlwaysOnTop = true
     billboardGui.MaxDistance = DISPLAY_DISTANCE
     
@@ -102,30 +136,10 @@ local function createLabel(npc)
         textLabel = textLabel
     }
     
+    -- Update the label text immediately
+    updateLabel(npc)
+    
     print("NPCOverheadSizeDisplay: Created label for NPC:", npc:GetAttribute("NPCId"))
-end
-
--- Update a label's text
-local function updateLabel(npc)
-    local label = npcLabels[npc]
-    if not label then return end
-    
-    local size = npc:GetAttribute("Size") or 1
-    local state = npc:GetAttribute("CurrentState") or "Unknown"
-    local npcId = npc:GetAttribute("NPCId") or "Unknown"
-    
-    label.textLabel.Text = string.format("NPC %s\nSize: %.2f\nState: %s", 
-        npcId, size, state)
-end
-
--- Remove a label
-local function removeLabel(npc)
-    local label = npcLabels[npc]
-    if label then
-        print("NPCOverheadSizeDisplay: Removing label for NPC:", npc:GetAttribute("NPCId"))
-        label.billboardGui:Destroy()
-        npcLabels[npc] = nil
-    end
 end
 
 -- Initialize
@@ -134,14 +148,18 @@ local function init()
     
     -- Listen for NPC state changes
     local stateChangedEvent = EventManager:GetEvent("NPCStateChanged")
-    if stateChangedEvent then
-        stateChangedEvent.OnClientEvent:Connect(function(npc, newState)
-            print("NPCOverheadSizeDisplay: Received state change for NPC:", npc:GetAttribute("NPCId"))
-            if npcLabels[npc] then
-                updateLabel(npc)
-            end
-        end)
+    if not stateChangedEvent then
+        warn("NPCOverheadSizeDisplay: Failed to get NPCStateChanged event")
+        return
     end
+    
+    print("NPCOverheadSizeDisplay: Found NPCStateChanged event")
+    stateChangedEvent.OnClientEvent:Connect(function(npc, newState)
+        print("NPCOverheadSizeDisplay: Received state change for NPC:", npc:GetAttribute("NPCId"))
+        if npcLabels[npc] then
+            updateLabel(npc)
+        end
+    end)
     
     -- Set up update loop
     game:GetService("RunService").Heartbeat:Connect(function()
