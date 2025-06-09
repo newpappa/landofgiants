@@ -21,6 +21,33 @@ local Promise = require(ReplicatedStorage.Shared.Core.Promise)
 -- Get the NPC model
 local NPCModel = ReplicatedStorage.Models:WaitForChild("R15 Dummy")
 
+-- Debug visualization
+local function createDebugMarker(position, size, npcId)
+    local part = Instance.new("Part")
+    part.Anchored = true
+    part.CanCollide = false
+    part.Size = Vector3.new(1, 1, 1)
+    part.Position = position
+    part.BrickColor = BrickColor.new("Really red")
+    part.Transparency = 0.5
+    
+    -- Add text label
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Size = UDim2.new(0, 100, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 2, 0)
+    billboardGui.Adornee = part
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.Text = string.format("NPC %s\nSize: %.2f", npcId, size)
+    textLabel.Parent = billboardGui
+    
+    billboardGui.Parent = part
+    part.Parent = workspace
+end
+
 local NPCFactory = {
     _initialized = false,
     _activeNPCs = {},
@@ -74,6 +101,9 @@ function NPCFactory.CreateNPC(spawnPosition)
         lastPosition = spawnPosition,
         state = "OrbSeeking"
     }
+    
+    -- Create debug marker
+    createDebugMarker(spawnPosition, sizeData.scale, npcId)
     
     print("NPCFactory: Created NPC", npcId, "at size", sizeData.scale)
     return npc
