@@ -16,7 +16,8 @@ local ServerScriptService = game:GetService("ServerScriptService")
 -- Load dependencies
 local NPCFactory = require(ServerScriptService.Server.NPC.NPCFactory)
 local RandomNPCPositions = require(ServerScriptService.Server.NPC.RandomNPCPositions)
-local NPCRegistry = require(ServerScriptService.Server.NPC.NPCRegistry)
+local NPCRegistry = require(ReplicatedStorage.Shared.NPC.NPCRegistry)
+local NPCAIController = require(ServerScriptService.Server.NPC.NPCAIController)
 local Promise = require(ReplicatedStorage.Shared.Core.Promise)
 
 local NPCSpawnManager = {
@@ -65,8 +66,9 @@ function NPCSpawnManager.SpawnNPC()
             end)
         end)
         
-        -- Register with NPCRegistry instead of tracking locally
+        -- Register with NPCRegistry and NPCAIController
         NPCRegistry.RegisterNPC(npc)
+        NPCAIController.RegisterNPC(npc)
         local npcId = npc:GetAttribute("NPCId")
         print("NPCSpawnManager: Spawned new NPC", npcId, "(Total NPCs:", NPCSpawnManager.GetNPCCount(), ")")
     end
@@ -87,8 +89,9 @@ function NPCSpawnManager.RemoveNPC(npc)
     -- Add to spawn cooldown
     NPCSpawnManager._spawnCooldowns[npcId] = os.time()
     
-    -- Unregister from NPCRegistry
+    -- Unregister from NPCRegistry and NPCAIController
     NPCRegistry.UnregisterNPC(npc)
+    NPCAIController.UnregisterNPC(npc)
     
     -- Remove the NPC
     NPCFactory.RemoveNPC(npc)

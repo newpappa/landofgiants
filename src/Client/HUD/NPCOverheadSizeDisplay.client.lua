@@ -96,50 +96,59 @@ local function createLabel(npc)
     print("NPCOverheadSizeDisplay: Creating label for NPC:", npc:GetAttribute("NPCId"))
     printNPCAttributes(npc)
     
-    -- Wait for HumanoidRootPart first, just like in NPCFactory
-    local rootPart = npc:WaitForChild("HumanoidRootPart")
-    
-    local billboardGui = Instance.new("BillboardGui")
-    billboardGui.Size = LABEL_SIZE
-    billboardGui.StudsOffset = LABEL_OFFSET
-    billboardGui.Adornee = rootPart
-    billboardGui.AlwaysOnTop = true
-    billboardGui.MaxDistance = DISPLAY_DISTANCE
-    
-    -- Create background frame for better visibility
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.new(0, 0, 0)
-    frame.BackgroundTransparency = 0.5
-    frame.BorderSizePixel = 0
-    frame.Parent = billboardGui
-    
-    -- Add corner rounding
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.2, 0)
-    corner.Parent = frame
-    
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.TextColor3 = Color3.new(1, 1, 1)
-    textLabel.TextStrokeTransparency = 0
-    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    textLabel.Font = Enum.Font.GothamBold
-    textLabel.TextSize = 18
-    textLabel.TextScaled = true
-    textLabel.Parent = billboardGui
-    
-    billboardGui.Parent = npc
-    npcLabels[npc] = {
-        billboardGui = billboardGui,
-        textLabel = textLabel
-    }
-    
-    -- Update the label text immediately
-    updateLabel(npc)
-    
-    print("NPCOverheadSizeDisplay: Created label for NPC:", npc:GetAttribute("NPCId"))
+    -- Add a simple delay before trying to create the label
+    task.delay(3, function()
+        if not npc:IsDescendantOf(workspace) then return end
+        
+        -- Wait for HumanoidRootPart first, just like in NPCFactory
+        local rootPart = npc:WaitForChild("HumanoidRootPart", HUMANOID_ROOT_PART_TIMEOUT)
+        if not rootPart then
+            print("NPCOverheadSizeDisplay: Failed to get HumanoidRootPart for NPC:", npc:GetAttribute("NPCId"))
+            return
+        end
+        
+        local billboardGui = Instance.new("BillboardGui")
+        billboardGui.Size = LABEL_SIZE
+        billboardGui.StudsOffset = LABEL_OFFSET
+        billboardGui.Adornee = rootPart
+        billboardGui.AlwaysOnTop = true
+        billboardGui.MaxDistance = DISPLAY_DISTANCE
+        
+        -- Create background frame for better visibility
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = Color3.new(0, 0, 0)
+        frame.BackgroundTransparency = 0.5
+        frame.BorderSizePixel = 0
+        frame.Parent = billboardGui
+        
+        -- Add corner rounding
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0.2, 0)
+        corner.Parent = frame
+        
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextColor3 = Color3.new(1, 1, 1)
+        textLabel.TextStrokeTransparency = 0
+        textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+        textLabel.Font = Enum.Font.GothamBold
+        textLabel.TextSize = 18
+        textLabel.TextScaled = true
+        textLabel.Parent = billboardGui
+        
+        billboardGui.Parent = npc
+        npcLabels[npc] = {
+            billboardGui = billboardGui,
+            textLabel = textLabel
+        }
+        
+        -- Update the label text immediately
+        updateLabel(npc)
+        
+        print("NPCOverheadSizeDisplay: Created label for NPC:", npc:GetAttribute("NPCId"))
+    end)
 end
 
 -- Initialize

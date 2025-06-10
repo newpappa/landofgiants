@@ -171,13 +171,54 @@ local function setupOrbTouch(orb)
             player = game.Players:GetPlayerFromCharacter(character)
         end
         
-        if not player then return end
+        -- Check if this is an NPC
+        local isNPC = false
+        if not player then
+            -- Check if the character has an NPCId attribute
+            if character and character:GetAttribute("NPCId") then
+                isNPC = true
+            end
+        end
         
-        -- Verify this is actually a player character by checking for Humanoid
+        -- If neither player nor NPC, ignore
+        if not player and not isNPC then return end
+        
+        -- Verify this is actually a character by checking for Humanoid
         local humanoid = character:FindFirstChild("Humanoid")
         if not humanoid then return end
         
-        handleOrbPickup(player, orb)
+        -- Get orb data for logging
+        local orbId = orb:GetAttribute("OrbId")
+        local orbType = orb:GetAttribute("OrbType")
+        local growthAmount = orb:GetAttribute("GrowthAmount")
+        
+        -- Handle pickup for both players and NPCs
+        if player then
+            print(string.format("OrbPickupManager: Player %s (ID: %d) collecting orb %s (Type: %s, Growth: %.2f)",
+                player.Name, player.UserId, orbId, orbType, growthAmount))
+            handleOrbPickup(player, orb)
+        elseif isNPC then
+            -- For NPCs, just destroy the orb and trigger growth
+            local npcId = character:GetAttribute("NPCId")
+            local currentSize = character:GetAttribute("Size") or 1
+            local growthAmount = orb:GetAttribute("GrowthAmount") or 0.1
+            
+            -- Calculate new size
+            local newSize = math.min(currentSize + growthAmount, PlayerSizeCalculator.MAX_SIZE)
+            
+            -- Update NPC size
+            character:SetAttribute("Size", newSize)
+            character:ScaleTo(newSize)
+            
+            -- Fire pickup event for visual effects
+            OrbPickupEvent:FireAllClients(nil, orb.Position, orb:GetAttribute("OrbType"), 0)
+            
+            -- Remove the orb
+            orb:Destroy()
+            
+            print(string.format("OrbPickupManager: NPC %s collecting orb %s (Type: %s, Growth: %.2f) - Size: %.2f -> %.2f",
+                npcId, orbId, orbType, growthAmount, currentSize, newSize))
+        end
     end)
 end
 

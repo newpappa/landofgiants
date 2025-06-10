@@ -23,7 +23,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 -- Dependencies
-local NPCRegistry = require(script.Parent.NPCRegistry)
+local NPCRegistry = require(ReplicatedStorage.Shared.NPC.NPCRegistry)
 local Promise = require(ReplicatedStorage.Shared.Core.Promise)
 
 print("[ProximityManager] Module script loaded")

@@ -52,8 +52,8 @@ local animationDefinitions = {
             looped = true,
             fadeTime = 0.2,
             npcStates = {
-                "OrbSeeking",
-                "PlayerHunting"
+                "ORB_SEEKING",
+                "PLAYER_HUNTING"
             }
         }
     },
@@ -67,8 +67,9 @@ local animationDefinitions = {
             looped = true,
             fadeTime = 0.2,
             npcStates = {
-                "OrbSeeking",
-                "PlayerHunting"
+                "WANDERING",
+                "ORB_SEEKING",
+                "PLAYER_HUNTING"
             }
         }
     },
@@ -82,7 +83,9 @@ local animationDefinitions = {
             looped = true,
             fadeTime = 0.2,
             npcStates = {
-                "PlayerHunting"
+                "PLAYER_HUNTING",
+                "PLAYER_ATTACK",
+                "FLEEING"
             }
         }
     },
@@ -96,7 +99,7 @@ local animationDefinitions = {
             looped = false,
             fadeTime = 0.1,
             npcStates = {
-                "PlayerAttack"
+                "PLAYER_ATTACK"
             }
         }
     }
@@ -127,11 +130,19 @@ end
 
 -- Function to get animation data by ID
 function AnimationRegistry.GetAnimationData(animationId)
+    print("[AnimationRegistry] Getting animation data for ID:", animationId)
+    print("[AnimationRegistry] Available animations:", table.concat(getTableKeys(animationDefinitions), ", "))
+    
     local config = animationDefinitions[animationId]
     if not config then
         warn("[AnimationRegistry] Animation not found:", animationId)
         return nil
     end
+    
+    print("[AnimationRegistry] Found animation data for:", animationId)
+    print("[AnimationRegistry] Animation ID:", config.published)
+    print("[AnimationRegistry] Metadata:", config.metadata)
+    
     return config
 end
 

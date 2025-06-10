@@ -15,26 +15,31 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 -- Dependencies
 local Promise = require(ReplicatedStorage.Shared.Core.Promise)
-local NPCRegistry = require(ServerScriptService.Server.NPC.NPCRegistry)
+local NPCRegistry = require(ReplicatedStorage.Shared.NPC.NPCRegistry)
 local EventManager = require(ReplicatedStorage.Shared.Core.EventManager)
+local NPCMover = require(script.Parent.NPCMover)
+local AnimationController = require(script.Parent.AnimationController)
+
+-- Get the state change event
+local NPCStateChanged = EventManager:GetEvent("NPCStateChanged")
 
 -- Constants
 local STATE_COOLDOWN = 5 -- seconds between state changes
 local STATES = {
-    ORB_SEEKING = "OrbSeeking",
-    PLAYER_HUNTING = "PlayerHunting",
-    PLAYER_ATTACK = "PlayerAttack",
-    FLEEING = "Fleeing"
+    IDLE = "IDLE",
+    WANDERING = "WANDERING",
+    ORB_SEEKING = "ORB_SEEKING",
+    PLAYER_HUNTING = "PLAYER_HUNTING",
+    PLAYER_ATTACK = "PLAYER_ATTACK",
+    FLEEING = "FLEEING"
 }
 
 local NPCStateMachine = {
     _initialized = false,
     _stateHistory = {}, -- {npcId = {state = state, timestamp = timestamp}}
-    _lastStateChange = {} -- {npcId = timestamp}
+    _lastStateChange = {}, -- {npcId = timestamp}
+    _invalidStateWarnings = {}
 }
-
--- Track invalid states we've already warned about
-local _invalidStateWarnings = {}
 
 function NPCStateMachine.Init()
     if NPCStateMachine._initialized then
@@ -44,6 +49,11 @@ function NPCStateMachine.Init()
     return Promise.new(function(resolve, reject)
         local success, err = pcall(function()
             print("NPCStateMachine: Initializing...")
+            
+            -- Initialize dependencies
+            NPCMover.Init()
+            AnimationController.Init()
+            
             NPCStateMachine._initialized = true
         end)
 
@@ -66,25 +76,27 @@ function NPCStateMachine._canChangeState(npcId)
 end
 
 -- Changes NPC state if cooldown has elapsed
-function NPCStateMachine.ChangeState(npcId, newState)
-    if not NPCStateMachine._canChangeState(npcId) then
-        return false
+function NPCStateMachine.ChangeState(npcId, newState, target)
+    if not NPCStateMachine._initialized then
+        warn("NPCStateMachine: Attempted to change state before initialization")
+        return
     end
 
-    if not STATES[newState] then
-        -- Only warn about each invalid state once
-        if not _invalidStateWarnings[newState] then
-            print("NPCStateMachine: Invalid state", newState, "attempted")
-            _invalidStateWarnings[newState] = true
-        end
-        return false
-    end
-
-    -- Get the NPC instance
     local npc = NPCRegistry.GetNPCById(npcId)
     if not npc then
-        warn("NPCStateMachine: NPC not found for ID", npcId)
-        return false
+        warn("NPCStateMachine: NPC", npcId, "not found")
+        return
+    end
+
+    local currentState = NPCStateMachine.GetState(npcId)
+    if currentState == newState then return end
+
+    if not STATES[newState] then
+        if not NPCStateMachine._invalidStateWarnings[newState] then
+            warn("NPCStateMachine: Invalid state", newState)
+            NPCStateMachine._invalidStateWarnings[newState] = true
+        end
+        return
     end
 
     -- Update state history
@@ -96,17 +108,21 @@ function NPCStateMachine.ChangeState(npcId, newState)
     -- Update last state change timestamp
     NPCStateMachine._lastStateChange[npcId] = os.time()
     
-    -- Update NPC metadata in registry
+    -- Update state in registry
     NPCRegistry.UpdateNPCState(npcId, newState)
     
-    -- Notify AnimationController of state change via EventManager
-    local event = EventManager:GetEvent("NPCStateChanged")
-    if event then
-        event:FireAllClients(npc, newState)
+    -- Update movement and animation
+    NPCMover.HandleStateChange(npc, newState, target)
+    AnimationController.HandleNPCStateChange(npc, newState)
+    
+    -- Fire state change event with target
+    if NPCStateChanged then
+        NPCStateChanged:FireAllClients(npc, newState, target)
+    else
+        warn("NPCStateMachine: NPCStateChanged event not found")
     end
     
     print("NPCStateMachine: Changed state for NPC", npcId, "to", newState)
-    return true
 end
 
 -- Gets current state of NPC

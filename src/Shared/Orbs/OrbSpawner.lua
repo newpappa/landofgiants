@@ -20,7 +20,9 @@ local orbFolder = Instance.new("Folder")
 orbFolder.Name = "GrowthOrbs"
 orbFolder.Parent = Workspace
 
-local OrbSpawner = {}
+local OrbSpawner = {
+    _nextOrbId = 1  -- Counter for unique orb IDs
+}
 
 -- Function to create a new orb
 function OrbSpawner.CreateOrb(positionData)
@@ -59,9 +61,13 @@ function OrbSpawner.CreateOrb(positionData)
         return nil
     end
     
+    -- Generate unique orb ID
+    local orbId = "Orb_" .. OrbSpawner._nextOrbId
+    OrbSpawner._nextOrbId = OrbSpawner._nextOrbId + 1
+    
     -- Create the orb part
     local orb = Instance.new("Part")
-    orb.Name = "GrowthOrb_" .. selectedType
+    orb.Name = orbId  -- Use unique ID as name
     orb.Anchored = true
     orb.CanCollide = false
     orb.Size = Vector3.new(1, 1, 1) * typeData.scale
@@ -99,6 +105,7 @@ function OrbSpawner.CreateOrb(positionData)
     -- Store orb data
     orb:SetAttribute("GrowthAmount", typeData.growthAmount)
     orb:SetAttribute("OrbType", selectedType)
+    orb:SetAttribute("OrbId", orbId)  -- Store unique ID as attribute
     
     -- Gradually increase visual effects
     task.delay(0.5, function()

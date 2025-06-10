@@ -60,7 +60,7 @@ function NPCFactory.CreateNPC(spawnPosition)
     npc:SetAttribute("IsNPC", true)
     npc:SetAttribute("NPCId", npcId)
     npc:SetAttribute("SpawnTime", os.time())
-    npc:SetAttribute("CurrentState", "OrbSeeking")
+    npc:SetAttribute("CurrentState", "ORB_SEEKING")
     npc:SetAttribute("Size", sizeData.scale)
     npc:SetAttribute("VisualHeight", sizeData.visualHeight)
     

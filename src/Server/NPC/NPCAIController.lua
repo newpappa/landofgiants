@@ -16,9 +16,11 @@ local RunService = game:GetService("RunService")
 
 -- Dependencies
 local Promise = require(ReplicatedStorage.Shared.Core.Promise)
-local NPCRegistry = require(ServerScriptService.Server.NPC.NPCRegistry)
+local NPCRegistry = require(ReplicatedStorage.Shared.NPC.NPCRegistry)
 local NPCStateMachine = require(ServerScriptService.Server.NPC.NPCStateMachine)
 local ProximityManager = require(ServerScriptService.Server.NPC.ProximityManager)
+local NPCMover = require(script.Parent.NPCMover)
+local AnimationController = require(script.Parent.AnimationController)
 
 -- Constants
 local HUNT_TIMEOUT = 10 -- seconds to continue hunting before considering orbs
@@ -44,7 +46,7 @@ local function getNearestOrb(npc)
     local nearestDistance = math.huge
     
     -- Get nearby orbs using ProximityManager
-    local nearbyOrbs = ProximityManager.GetOrbsNearPosition(npcPosition, 100) -- Search within 100 studs
+    local nearbyOrbs = ProximityManager.GetOrbsNearPosition(npcPosition, 300) -- Increased search radius to 300 studs
     
     -- Find the nearest orb
     for _, orb in ipairs(nearbyOrbs) do
@@ -54,6 +56,14 @@ local function getNearestOrb(npc)
                 nearestOrb = orb
                 nearestDistance = distance
             end
+        end
+    end
+    
+    -- Debug logging
+    if #nearbyOrbs > 0 then
+        print("NPCAIController: Found", #nearbyOrbs, "orbs near NPC", npc:GetAttribute("NPCId"))
+        if nearestOrb then
+            print("NPCAIController: Nearest orb is", nearestOrb:GetAttribute("OrbId"), "at distance", nearestDistance)
         end
     end
     
@@ -90,7 +100,12 @@ end
 
 local function updateNPCTarget(npc, target)
     if target then
-        npc:SetAttribute("CurrentTarget", target.Name)
+        -- Use the orb's unique ID if it's an orb
+        if target:GetAttribute("OrbId") then
+            npc:SetAttribute("CurrentTarget", target:GetAttribute("OrbId"))
+        else
+            npc:SetAttribute("CurrentTarget", target.Name)
+        end
     else
         npc:SetAttribute("CurrentTarget", nil)
     end
@@ -108,42 +123,18 @@ function NPCAIController.Init()
             print("NPCAIController: Initializing...")
             
             -- Initialize dependencies
-            NPCRegistry.Init():andThen(function()
-                -- Set up NPCRegistry callbacks
-                NPCRegistry.OnNPCRegistered = function(npc)
-                    print("NPCAIController: Received NPC registration from NPCRegistry:", npc:GetAttribute("NPCId"))
-                    NPCAIController.RegisterNPC(npc)
-                end
-                
-                NPCRegistry.OnNPCUnregistered = function(npc)
-                    print("NPCAIController: Received NPC unregistration from NPCRegistry:", npc:GetAttribute("NPCId"))
-                    NPCAIController.UnregisterNPC(npc)
-                end
-                
-                return NPCStateMachine.Init()
-            end):andThen(function()
-                return ProximityManager.Init()
-            end):andThen(function()
-                -- Set up RunService connection for updates
-                RunService.Heartbeat:Connect(function()
-                    local now = tick()
-                    if now - (NPCAIController._lastUpdate or 0) >= NPCAIController._updateFrequency then
-                        NPCAIController._lastUpdate = now
-                        NPCAIController.UpdateAllNPCs()
-                    end
-                end)
-                
-                NPCAIController._initialized = true
-                print("NPCAIController: Initialized successfully")
-                resolve()
-            end):catch(function(err)
-                warn("NPCAIController: Initialization failed:", err)
-                reject(err)
-            end)
+            NPCStateMachine.Init()
+            NPCMover.Init()
+            AnimationController.Init()
+            
+            NPCAIController._initialized = true
         end)
 
-        if not success then
-            warn("NPCAIController: Failed to initialize:", err)
+        if success then
+            print("NPCAIController initialized!")
+            resolve()
+        else
+            warn("NPCAIController: Failed to initialize -", err)
             reject(err)
         end
     end)
@@ -156,10 +147,7 @@ function NPCAIController.RegisterNPC(npc)
     end
 
     local npcId = npc:GetAttribute("NPCId")
-    if not npcId then
-        warn("NPCAIController: Attempted to register NPC without ID")
-        return
-    end
+    if not npcId then return end
 
     NPCAIController._activeNPCs[npcId] = {
         target = nil,
@@ -167,9 +155,9 @@ function NPCAIController.RegisterNPC(npc)
         lastAttackTime = nil
     }
     
-    -- Set initial state to OrbSeeking
-    NPCStateMachine.ChangeState(npcId, "ORB_SEEKING")
-    print("NPCAIController: Registered NPC", npcId, "with initial state ORB_SEEKING")
+    -- Set initial state
+    NPCStateMachine.ChangeState(npcId, "ORB_SEEKING", nil)
+    print("NPCAIController: Registered NPC", npcId)
 end
 
 function NPCAIController.UnregisterNPC(npc)
@@ -183,7 +171,7 @@ function NPCAIController.UnregisterNPC(npc)
 
     NPCAIController._activeNPCs[npcId] = nil
     NPCStateMachine.CleanupNPC(npcId)
-    updateNPCTarget(npc, nil)
+    NPCMover.StopMovement(npc)
     print("NPCAIController: Unregistered NPC", npcId)
 end
 
@@ -202,72 +190,68 @@ function NPCAIController.UpdateAllNPCs()
         local nearestPlayer, playerDistance = getNearestPlayer(npc)
         local nearestOrb, orbDistance = getNearestOrb(npc)
         
+        -- If no targets are available, go to WANDERING state
+        if not nearestOrb and not nearestPlayer then
+            if currentState ~= "WANDERING" then
+                print("NPCAIController: NPC", npcId, "no targets available, starting to wander")
+                NPCStateMachine.ChangeState(npcId, "WANDERING", nil)
+            end
+            continue
+        end
+        
         -- Handle fleeing behavior for smaller NPCs
         if nearestPlayer and shouldFleeFromPlayer(npc, nearestPlayer) then
-            if playerDistance < DISTANCES.FLEE_START then
+            if playerDistance <= DISTANCES.FLEE_START then
                 if currentState ~= "FLEEING" then
-                    print("NPCAIController: NPC", npcId, "fleeing from larger player at distance", playerDistance)
-                    NPCStateMachine.ChangeState(npcId, "FLEEING")
-                    updateNPCTarget(npc, nearestPlayer)
+                    print("NPCAIController: NPC", npcId, "fleeing from larger player")
+                    NPCStateMachine.ChangeState(npcId, "FLEEING", nearestPlayer)
                 end
                 continue
-            elseif currentState == "FLEEING" and playerDistance > DISTANCES.SAFE_DISTANCE then
-                print("NPCAIController: NPC", npcId, "safe from player, returning to orb seeking")
-                NPCStateMachine.ChangeState(npcId, "ORB_SEEKING")
-                updateNPCTarget(npc, nearestOrb)
             end
         end
         
-        -- Handle hunting/attack behavior for larger NPCs
+        -- Handle hunting behavior for larger NPCs
         if nearestPlayer and not shouldFleeFromPlayer(npc, nearestPlayer) then
-            if playerDistance < DISTANCES.ATTACK_RANGE then
+            if playerDistance <= DISTANCES.ATTACK_RANGE then
                 if currentState ~= "PLAYER_ATTACK" then
-                    print("NPCAIController: NPC", npcId, "attacking player at distance", playerDistance)
-                    NPCStateMachine.ChangeState(npcId, "PLAYER_ATTACK")
-                    updateNPCTarget(npc, nearestPlayer)
-                    data.lastAttackTime = os.time()
+                    print("NPCAIController: NPC", npcId, "attacking player")
+                    NPCStateMachine.ChangeState(npcId, "PLAYER_ATTACK", nearestPlayer)
                 end
                 continue
-            elseif playerDistance < DISTANCES.HUNT_START then
+            elseif playerDistance <= DISTANCES.HUNT_START then
                 if currentState ~= "PLAYER_HUNTING" then
-                    print("NPCAIController: NPC", npcId, "hunting player at distance", playerDistance)
-                    NPCStateMachine.ChangeState(npcId, "PLAYER_HUNTING")
-                    updateNPCTarget(npc, nearestPlayer)
-                    data.huntStartTime = os.time()
+                    print("NPCAIController: NPC", npcId, "hunting player")
+                    NPCStateMachine.ChangeState(npcId, "PLAYER_HUNTING", nearestPlayer)
                 end
                 continue
             end
         end
         
-        -- Check for hunt timeout or attack cooldown
-        if currentState == "PLAYER_HUNTING" and data.huntStartTime then
-            if os.time() - data.huntStartTime > HUNT_TIMEOUT then
-                print("NPCAIController: NPC", npcId, "hunt timeout, returning to orb seeking")
-                NPCStateMachine.ChangeState(npcId, "ORB_SEEKING")
-                updateNPCTarget(npc, nearestOrb)
-                data.huntStartTime = nil
-            end
-        elseif currentState == "PLAYER_ATTACK" and data.lastAttackTime then
-            if os.time() - data.lastAttackTime > 2 then -- 2 second attack cooldown
-                print("NPCAIController: NPC", npcId, "attack complete, returning to orb seeking")
-                NPCStateMachine.ChangeState(npcId, "ORB_SEEKING")
-                updateNPCTarget(npc, nearestOrb)
-                data.lastAttackTime = nil
-            end
-        end
-        
-        -- Default to orb seeking
-        if currentState == "ORB_SEEKING" then
-            if nearestOrb then
-                print("NPCAIController: NPC", npcId, "seeking orb at distance", orbDistance)
-                data.target = nearestOrb
-                updateNPCTarget(npc, nearestOrb)
+        -- Handle orb seeking
+        if nearestOrb then
+            if currentState ~= "ORB_SEEKING" then
+                print("NPCAIController: NPC", npcId, "seeking orb")
+                NPCStateMachine.ChangeState(npcId, "ORB_SEEKING", nearestOrb)
             else
-                print("NPCAIController: NPC", npcId, "no targets found")
-                updateNPCTarget(npc, nil)
+                -- Update target orb even if already in ORB_SEEKING state
+                local currentTarget = npc:GetAttribute("CurrentTarget")
+                local orbId = nearestOrb:GetAttribute("OrbId")
+                if currentTarget ~= orbId then
+                    print("NPCAIController: NPC", npcId, "updating target orb")
+                    NPCStateMachine.ChangeState(npcId, "ORB_SEEKING", nearestOrb)
+                end
             end
         end
     end
 end
+
+-- Set up RunService connection for AI updates
+RunService.Heartbeat:Connect(function()
+    local now = tick()
+    if now - (NPCAIController._lastUpdate or 0) >= NPCAIController._updateFrequency then
+        NPCAIController._lastUpdate = now
+        NPCAIController.UpdateAllNPCs()
+    end
+end)
 
 return NPCAIController 

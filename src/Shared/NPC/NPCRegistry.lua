@@ -1,12 +1,13 @@
 --[[
 Name: NPCRegistry
 Type: ModuleScript
-Location: ServerScriptService.Server.NPC
+Location: ReplicatedStorage.Shared.NPC
 Description: Central registry for all active NPCs, providing efficient lookup and management
 Interacts With:
   - NPCFactory: Registers new NPCs
   - NPCAIController: Provides NPC lookup and filtering
   - ProximityManager: Provides NPC data for proximity checks
+  - NPCMover: Provides NPC lookup for movement
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
