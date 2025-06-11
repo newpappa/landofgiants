@@ -16,7 +16,7 @@ local EventManager = require(ReplicatedStorage.Shared.Core.EventManager)
 
 -- Constants
 local DISPLAY_DISTANCE = 600 -- Increased viewing distance
-local LABEL_OFFSET = Vector3.new(0, 5, 0) -- Height above NPC head
+local LABEL_OFFSET = Vector3.new(0, 10, 0) -- Height above NPC head
 local LABEL_SIZE = UDim2.new(0, 100, 0, 50)
 local HUMANOID_ROOT_PART_TIMEOUT = 10 -- Increased timeout to 10 seconds
 local MAX_RETRIES = 3 -- Maximum number of retries for failed NPCs
@@ -45,8 +45,7 @@ local function updateLabel(npc)
     local state = npc:GetAttribute("CurrentState") or "Unknown"
     local npcId = npc:GetAttribute("NPCId") or "Unknown"
     
-    label.textLabel.Text = string.format("%s\nSize: %.2f\nState: %s", 
-        npcId, size, state)
+    label.textLabel.Text = string.format("%s %.2f\n%s", npcId, size, state)
 end
 
 -- Remove a label

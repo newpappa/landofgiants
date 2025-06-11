@@ -63,7 +63,13 @@ local function getNearestOrb(npc)
     if #nearbyOrbs > 0 then
         print("NPCAIController: Found", #nearbyOrbs, "orbs near NPC", npc:GetAttribute("NPCId"))
         if nearestOrb then
-            print("NPCAIController: Nearest orb is", nearestOrb:GetAttribute("OrbId"), "at distance", nearestDistance)
+            local orbId = nearestOrb:GetAttribute("OrbId")
+            local orbPos = nearestOrb:GetPivot().Position
+            print(string.format("NPCAIController: NPC_%s found target Orb_%s at position (X:%.1f, Y:%.1f, Z:%.1f)",
+                npc:GetAttribute("NPCId"),
+                orbId,
+                orbPos.X, orbPos.Y, orbPos.Z
+            ))
         end
     end
     

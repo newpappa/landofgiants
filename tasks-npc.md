@@ -1,450 +1,146 @@
-# NPC Implementation Plan for Land of Giants
+# NPC Orb Collection
 
+## Current Flow Documentation
 
-## 1. NPC Factory System ✓
-```lua
---[[
-Name: NPCFactory
-Type: ModuleScript
-Location: ServerScriptService.Server.NPC
-Description: Creates and manages NPC characters with proper scaling and behaviors
-Interacts With:
-  - PlayerSizeCalculator: Uses same size calculation logic as players
-  - SizeStateMachine: Manages NPC size state
-  - OrbPickupManager: Handles NPC orb collection
-  - SquashHandler: Manages NPC squash mechanics
---]]
-```
+### 1. Bootstrapper.server.lua
+- Initializes CollisionSetup first
+- Then loads all other modules in sequence
+- ✅ Proper initialization order
 
-### Tasks:
-- [x] Create NPC characters using R15 rigs
-- [x] Implement size scaling using `PlayerSizeCalculator`
-- [x] Add NPC-specific attributes (AI state, target, etc.)
-- [x] Handle NPC death and cleanup
-- [x] Manage NPC animations and visual effects
+### 2. CollisionSetup.server.lua
+- Creates collision groups (NPCs, Orbs)
+- Sets up collision rules
+- ✅ Proper collision group setup
 
-## 2. NPC Spawn Manager ✓
-```lua
---[[
-Name: NPCSpawnManager
-Type: ModuleScript
-Location: ServerScriptService.Server.NPC.Factory
-Description: Manages NPC population and respawning
-Interacts With:
-  - NPCFactory: Creates new NPCs
-  - NPCAIController: Assigns AI to new NPCs
-  - RandomOrbPositions: Uses position management system
-  - OrbPositionManager: Manages spawn position distribution
---]]
-```
+### 3. NPCAIController.lua
+- Manages NPC behavior and decision making
+- Checks for nearby orbs every update
+- Handles orb collection when in range
+- ❌ Missing: Size increase after collection
+- ❌ Missing: Visual effects for collection
+- ❌ Missing: Error handling for failed collections
 
-### Tasks:
-- [x] Maintain optimal NPC population (e.g., 10-15 NPCs)
-- [x] Spawn new NPCs when:
-  - [x] Population drops below threshold
-  - [x] Players join the game
-  - [x] Map areas are empty
-- [x] Handle NPC respawning with cooldown
-- [x] Distribute NPCs across the map
+### 4. NPCStateMachine.lua
+- Manages state transitions
+- Handles COLLECTING state
+- Returns to ORB_SEEKING after collection
+- ❌ Missing: GROWING state implementation
+- ❌ Missing: Size transition animations
+- ❌ Missing: State cleanup for destroyed NPCs
 
-## 3. Position Management Integration
-```lua
---[[
-Name: PositionManagement
-Type: ModuleScript
-Location: ServerScriptService.Server.NPC
-Description: Extends existing position management for NPC spawning
-Interacts With:
-  - RandomOrbPositions: Extends for NPC position sampling
-  - OrbPositionManager: Adapts for NPC position distribution
-  - NPCSpawnManager: Uses unified position system
---]]
-```
+### 5. EventManager.lua
+- Manages OrbCollected and NPCStateChanged events
+- Handles both server and client events
+- ✅ Proper event setup
 
-### Tasks:
-- [x] Extend RandomOrbPositions:
-  - [x] Add NPC-specific grid spacing
-  - [x] Implement NPC position validation
-  - [x] Add size-based position requirements
-  - [x] Handle NPC movement space requirements
-- [x] Adapt OrbPositionManager:
-  - [x] Add NPC position type handling
-  - [x] Implement NPC-specific cooldowns
-  - [x] Add NPC position reservation system
-  - [x] Handle NPC position recycling
-- [x] Update NPCSpawnManager:
-  - [x] Integrate with position management system
-  - [x] Add position validation hooks
-  - [x] Implement position-based spawn logic
-  - [x] Add spawn area management
+### 6. OrbManager.server.lua
+- Manages orb spawning and cleanup
+- ❌ Missing: Integration with collection system
+- ❌ Missing: Orb respawn after collection
+- ❌ Missing: Collection statistics tracking
 
-## 4. Animation Registry ✓
-```lua
---[[
-Name: AnimationRegistry
-Type: ModuleScript
-Location: ServerScriptService.Server
-Description: Central registry for all character animations and their configurations
-Interacts With:
-  - AnimationController: Provides animation data
-  - NPCFactory: Registers new animations
-  - PlayerFactory: Registers player animations
---]]
-```
+### 7. AnimationController.lua
+- Manages NPC animations
+- ❌ Missing: Collection animation
+- ❌ Missing: Growth animation
+- ❌ Missing: Animation transition handling
 
-### Tasks:
-- [x] Create central registry for NPC animations
-- [x] Define animation configurations:
-  - [x] Walking/running animations
-  - [x] Orb collection animations
-  - [x] Squashing animations
-  - [x] Death animations
-  - [x] Idle animations
-  - [x] Reaction animations
-- [x] Add animation metadata:
-  - [x] Priority levels
-  - [x] Transition rules
-  - [x] Size-based variations
-  - [x] Duration and timing
-- [x] Implement animation loading system:
-  - [x] Lazy loading
-  - [x] Preloading common animations
-  - [x] Error handling
-- [x] Add animation validation and testing
+### 8. ProximityManager.lua
+- Handles spatial awareness
+- Provides nearby orb detection
+- ✅ Proper proximity checking
 
-## 5. Animation Controller ✓
-```lua
---[[
-Name: AnimationController
-Type: ModuleScript
-Location: ServerScriptService.Client.Animation
-Description: Manages animation playback for all characters (players and NPCs)
-Interacts With:
-  - AnimationRegistry: Gets animation data
-  - NPCStateMachine: Receives state changes for NPCs
-  - PlayerStateMachine: Receives state changes for players
---]]
-```
+## Issues Found
+1. No size increase implementation after collection
+2. Missing visual feedback for collection
+3. No orb respawn system after collection
+4. Missing collection animations
+5. No error handling for failed collections
+6. Missing state cleanup for destroyed NPCs
+7. No collection statistics tracking
+8. Missing growth animations
+9. No integration between OrbManager and collection system
 
-### Tasks:
-- [x] Create unified animation controller system:
-  - [x] Animation loading and caching
-  - [x] Transition management
-  - [x] Priority handling
-  - [x] Size-based adjustments
-- [x] Implement animation playback:
-  - [x] Play/stop/pause controls
-  - [x] Speed adjustments
-  - [x] Looping management
-  - [x] Blend time control
-- [x] Add state-based animation triggers:
-  - [x] State enter/exit animations
-  - [x] State-specific animations
-  - [x] Transition animations
-- [x] Support both NPC and player animations:
-  - [x] Character type detection
-  - [x] Type-specific animations
-  - [x] Shared animation handling
-- [x] Implement performance optimizations:
-  - [x] Animation pooling
-  - [x] Distance-based quality
-  - [x] Update throttling
+## To-Do List
 
-## 6. NPC State Machine
-```lua
---[[
-Name: NPCStateMachine
-Type: ModuleScript
-Location: ServerScriptService.Server.NPC.AI
-Description: Tracks and reports NPC states. Does not make decisions about state changes.
-             Enforces cooldown between state changes to create lumbering, deliberate behavior.
-Interacts With:
-  - NPCAIController: Receives state change requests
-  - NPCAnimationController: Reports state changes for animation triggers
-  - NPCRegistry: Updates NPC metadata with current state
---]]
-```
+### 1. Size System Implementation
 
-### Tasks:
-- [x] Define simplified NPC states:
-  - [x] OrbSeeking
-  - [x] PlayerHunting
-  - [x] PlayerAttack
-  - [x] Dead
-- [x] Implement state tracking:
-  - [x] Current state storage
-  - [x] State change history
-  - [x] State reporting methods
-- [x] Add state change cooldown:
-  - [x] Simple timestamp-based cooldown (5-10 seconds)
-  - [x] Cooldown enforcement
-  - [x] Cooldown reporting
-- [x] Implement state persistence:
-  - [x] State saving
-  - [x] State restoration
-  - [x] State debugging
+#### 1.1 Orb Collection Detection
+- [ ] 1.1.1 Add collision detection for NPC-Orb contact
+- [ ] 1.1.2 Add proximity check for collection
+- [ ] 1.1.3 Add collection validation
+- [ ] 1.1.4 Add collection cooldown system
 
-## 7. NPC Registry
-```lua
---[[
-Name: NPCRegistry
-Type: ModuleScript
-Location: ServerScriptService.Server.NPC.Registry
-Description: Central registry for all active NPCs, providing efficient lookup and management
-Interacts With:
-  - NPCFactory: Registers new NPCs
-  - NPCAIController: Provides NPC lookup and filtering
-  - PlayerProximityManager: Provides NPC data for proximity checks
---]]
-```
+#### 1.2 Orb Collection Handling
+- [ ] 1.2.1 Add orb collection event handling
+- [ ] 1.2.2 Add orb removal after collection
+- [ ] 1.2.3 Add collection success/failure handling
+- [ ] 1.2.4 Add collection statistics tracking
 
-### Tasks:
-- [x] Create central registry for active NPCs
-- [x] Implement efficient NPC lookup by:
-  - [x] ID
-  - [x] Position
-  - [x] Size (exact size value)
-  - [x] State
-- [x] Add NPC metadata tracking:
-  - [x] Current state
-  - [x] Target information
-  - [x] Last known position
-  - [x] Size history
-- [x] Implement NPC filtering methods:
-  - [x] Get NPCs in radius
-  - [x] Get NPCs by size
-  - [x] Get NPCs by state
-- [x] Add cleanup methods for removed NPCs
+#### 1.3 Size Increase Implementation
+- [ ] 1.3.1 Add size increase logic to NPCAIController
+- [ ] 1.3.2 Implement orb collection size increase
+- [ ] 1.3.3 Use SizeCalculator for new size calculations
+- [ ] 1.3.4 Add size validation
 
-## 8. Proximity Manager
-```lua
---[[
-Name: ProximityManager
-Type: ModuleScript
-Location: ServerScriptService.Server.NPC.Proximity
-Description: Manages proximity detection between NPCs, players, and orbs.
-             Provides spatial awareness for AI decision making and state transitions.
-             Optimizes performance through spatial partitioning and update batching.
+#### 1.4 State Management
+- [ ] 1.4.1 Implement GROWING state in NPCStateMachine
+- [ ] 1.4.2 Add state transition logic
+- [ ] 1.4.3 Handle size increase timing
+- [ ] 1.4.4 Add state validation
 
-Key Responsibilities:
-    - Spatial partitioning for efficient proximity checks
-    - Proximity event broadcasting
-    - Performance optimization through update batching
+#### 1.5 Size Calculator Refactor
+- [ ] 1.5.1 Refactor PlayerSizeCalculator to be generic SizeCalculator
+- [ ] 1.5.2 Remove player-specific naming and constants
+- [ ] 1.5.3 Keep core size calculation logic (MIN_SIZE, MAX_SIZE, etc.)
+- [ ] 1.5.4 Maintain visual height calculations
+- [ ] 1.5.5 Update all references in NPCFactory and other scripts
 
-Dependencies:
-    - NPCRegistry: Required for NPC tracking and metadata
-    - Players Service: Required for player tracking
-    - OrbManager: Required for active orb tracking
+#### 1.6 Visual Feedback
+- [ ] 1.6.1 Add size transition animations
+- [ ] 1.6.2 Implement growth animation
+- [ ] 1.6.3 Add transition smoothing
+- [ ] 1.6.4 Add growth particles
+- [ ] 1.6.5 Add size change effects
 
-Consumers:
-    - NPCAIController: Uses proximity data for AI decisions
-    - NPCStateMachine: Uses proximity events for state transitions
---]]
-```
+### 2. Collection Visuals
+- [ ] Add collection animation to AnimationController
+- [ ] Implement collection particle effects
+- [ ] Add sound effects for collection
+- [ ] Add visual feedback for successful collection
 
-### Tasks:
-- [x] Implement spatial partitioning for efficient proximity checks
-- [x] Create proximity detection system:
-  - [x] Player to NPC proximity
-  - [x] NPC to NPC proximity
-  - [x] NPC to Orb proximity (using OrbManager's active orbs)
-- [x] Implement orb tracking:
-  - [x] Add OrbAdded/OrbRemoved events to EventManager
-  - [x] Fire events from OrbManager using EventManager
-  - [x] Subscribe to events in ProximityManager via EventManager
-  - [x] Update spatial partitioning on orb changes
-- [x] Add performance optimizations:
-  - [x] Update throttling
-  - [x] Distance-based update frequency
-  - [x] Culling for far objects
-  - [x] Batch proximity updates
+### 3. Orb Management
+- [ ] Integrate OrbManager with collection system
+- [ ] Implement orb respawn system
+- [ ] Add collection statistics tracking
+- [ ] Add orb type-specific behaviors
 
-## 9. NPC AI System
-```lua
---[[
-Name: NPCAIController
-Type: ModuleScript
-Location: ServerScriptService.Server.NPC.AI
-Description: Controls NPC behavior and decision making based on size comparison with players
-             and proximity thresholds. Implements a state machine for predictable behavior
-             transitions with cooldowns to create deliberate, lumbering movement.
+### 4. Error Handling
+- [ ] Add error handling for failed collections
+- [ ] Implement state cleanup for destroyed NPCs
+- [ ] Add validation for collection attempts
+- [ ] Add recovery mechanisms for failed states
 
-Key Behaviors:
-    - Smaller NPCs flee from larger players
-    - Larger NPCs hunt and attack smaller players
-    - All NPCs seek orbs when not engaged with players
-    - State changes have cooldowns to prevent erratic behavior
+### 5. Animation System
+- [ ] Add collection animation
+- [ ] Add growth animation
+- [ ] Implement smooth animation transitions
+- [ ] Add animation state validation
 
-Distance Thresholds:
-    - HUNT_START: 30 studs - Start chasing when player gets this close
-    - ATTACK_RANGE: 10 studs - Start attack when this close
-    - FLEE_START: 20 studs - Start fleeing when player gets this close
-    - SAFE_DISTANCE: 40 studs - Consider safe when this far from player
+### 6. State Management
+- [ ] Complete GROWING state implementation
+- [ ] Add state transition validation
+- [ ] Implement state cleanup
+- [ ] Add state recovery mechanisms
 
-State Flow:
-    - ORB_SEEKING → PLAYER_HUNTING (when player gets within 30 studs)
-    - PLAYER_HUNTING → PLAYER_ATTACK (when within 10 studs)
-    - PLAYER_ATTACK → ORB_SEEKING (after 2-second attack cooldown)
-    - ORB_SEEKING → FLEEING (for smaller NPCs when player within 20 studs)
-    - FLEEING → ORB_SEEKING (when 40 studs from player)
+### 7. Performance Optimization
+- [ ] Optimize proximity checks
+- [ ] Implement collection cooldown system
+- [ ] Add spatial partitioning for orb detection
+- [ ] Optimize state transitions
 
-Interacts With:
-  - NPCRegistry: Gets NPC data
-  - NPCStateMachine: Sends state change requests
-  - PlayerProximityManager: Gets proximity data
-  - OrbSpawner: Finds nearby orbs
---]]
-```
-
-### Phase 1: Basic Movement & States ✓
-- [x] Implement simple direct movement:
-  - [x] Move towards current target (orb or player)
-  - [x] Basic collision avoidance
-  - [x] Movement speed based on state
-- [x] Basic state transitions:
-  - [x] OrbSeeking → PlayerHunting (when player closer)
-  - [x] PlayerHunting → PlayerAttack (when very close)
-  - [x] PlayerAttack → OrbSeeking (after attack cooldown)
-  - [x] OrbSeeking → Fleeing (for smaller NPCs)
-  - [x] Fleeing → OrbSeeking (when safe)
-- [x] Target selection:
-  - [x] Find nearest orb
-  - [x] Find nearest player
-  - [x] Compare distances for state decisions
-  - [x] Check player size for flee decisions
-
-### Phase 2: Improved Movement
-- [ ] Add waypoint-based navigation:
-  - [ ] Define waypoint system
-  - [ ] Path following logic
-  - [ ] Waypoint selection
-- [ ] Enhanced obstacle avoidance:
-  - [ ] Dynamic obstacle detection
-  - [ ] Path recalculation
-  - [ ] Stuck detection and recovery
-- [ ] Improved target selection:
-  - [ ] Better distance calculations
-  - [ ] Target priority system
-  - [ ] Target switching logic
-
-### Future Phases (Not Implemented Yet)
-- [ ] Group coordination
-- [ ] Advanced threat assessment
-- [ ] Learning and adaptation
-- [ ] Performance optimizations
-
-## 10. Integration with Existing Systems
-
-### Tasks:
-- [ ] Modify `OrbPickupManager` to handle NPC orb collection
-- [ ] Update `SquashHandler` to work with NPCs
-- [ ] Add NPC size display using `OverheadSizeDisplay`
-- [ ] Implement NPC growth using `GrowthHandler`
-
-## 11. Performance Considerations
-
-### Tasks:
-- [x] Use spatial partitioning for NPC updates
-- [x] Implement NPC culling when far from players
-- [x] Batch NPC updates to reduce server load
-- [ ] Use efficient pathfinding with waypoints
-
-## 12. NPC Behavior Details
-
-### Tasks:
-- [x] Implement size-based behavior:
-  - [x] Small NPCs: Flee from larger players
-  - [x] Large NPCs: Hunt and attack smaller players
-  - [x] All NPCs: Seek orbs when not engaged
-- [x] Add proximity-based reactions:
-  - [x] Flee from larger players (within 20 studs)
-  - [x] Hunt smaller players (within 30 studs)
-  - [x] Attack when very close (within 10 studs)
-  - [x] Return to orb seeking when safe
-- [x] Implement orb collection behavior:
-  - [x] Prioritize closest orbs
-  - [x] Avoid dangerous areas
-  - [x] Share orb locations with nearby NPCs
-
-## 13. Visual and Audio
-
-### Tasks:
-- [x] Add NPC-specific animations:
-  - [x] Walking/running
-  - [x] Orb collection
-  - [x] Squashing
-  - [x] Death
-- [ ] Implement visual effects:
-  - [ ] Growth particles
-  - [ ] Squash effects
-  - [ ] Death effects
-- [ ] Add NPC-specific sounds:
-  - [ ] Movement
-  - [ ] Growth
-  - [ ] Squashing
-  - [ ] Death
-
-## 14. Testing and Balancing
-
-### Tasks:
-- [x] Test NPC behavior in various scenarios
-- [x] Balance NPC population and spawn rates
-- [x] Tune AI parameters for engaging gameplay
-- [ ] Monitor server performance
-
-## 15. NPC Movement System Refactoring ✓
-```lua
---[[
-Name: NPCMover
-Type: LocalScript
-Location: StarterPlayer.StarterPlayerScripts.Client.NPC
-Description: Handles NPC movement execution based on state changes
-Interacts With:
-  - NPCStateMachine: Receives state changes for movement updates
-  - AnimationController: Coordinates with animations
---]]
-```
-
-### Tasks:
-- [x] Refactor NPCAIController:
-  - [x] Remove direct movement execution
-  - [x] Use attributes for target information
-  - [x] Focus purely on AI decision making
-  - [x] Update state machine integration
-- [x] Create client-side NPCMover:
-  - [x] Move movement logic to client
-  - [x] Listen for state changes
-  - [x] Handle movement execution
-  - [x] Coordinate with animations
-- [x] Update state management:
-  - [x] Use attributes for target tracking
-  - [x] Ensure proper state synchronization
-  - [x] Handle state change events
-- [x] Improve architecture:
-  - [x] Better separation of concerns
-  - [x] Consistent event-based communication
-  - [x] Cleaner state management
-  - [x] More maintainable code structure
-
-### Benefits:
-- Cleaner separation between AI decisions and movement execution
-- Better performance by moving movement to client
-- More consistent architecture with animation system
-- Easier to maintain and extend
-- Better state management through attributes
-
-## Implementation Order:
-1. Folder Structure Setup ✓
-2. Shared Types and Configs ✓
-3. Position Management Integration
-4. Animation Registry (Shared)
-5. Animation Controller (Unified)
-6. NPC State Machine
-7. NPCRegistry
-8. Proximity Manager
-9. Basic AI System
-10. Integration with Existing Systems
-11. Advanced AI Behaviors
-12. Visual and Audio Effects
-13. Performance Optimizations
-14. Testing and Balancing 
+### 8. Testing and Validation
+- [ ] Add unit tests for collection system
+- [ ] Implement collection validation
+- [ ] Add state transition tests
+- [ ] Test error recovery

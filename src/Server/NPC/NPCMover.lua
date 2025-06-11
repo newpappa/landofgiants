@@ -120,6 +120,9 @@ function NPCMover.HandleStateChange(npc, newState, target)
         return
     end
     
+    -- Clear any existing movement data
+    NPCMover._wanderTargets[npcId] = nil
+    
     if not target then
         -- Start wandering
         local wanderPos = getRandomWanderPosition(npc)
@@ -136,13 +139,23 @@ function NPCMover.HandleStateChange(npc, newState, target)
         return
     end
     
-    -- Normal target behavior
-    NPCMover._wanderTargets[npcId] = nil
+    -- Store the actual target instance for orb seeking
     NPCMover._activeMovements[npcId] = {
         target = target,
         movementType = newState,
         startTime = os.time()
     }
+    
+    -- Enhanced logging for target receipt
+    if target and target:GetAttribute("OrbId") then
+        local targetPos = target:GetPivot().Position
+        print(string.format("NPCMover: NPC_%s received target Orb_%s at position (X:%.1f, Y:%.1f, Z:%.1f)",
+            npcId,
+            target:GetAttribute("OrbId"),
+            targetPos.X, targetPos.Y, targetPos.Z
+        ))
+    end
+    
     print("NPCMover: Started movement for NPC", npcId, "to target", target.Name, "in state", newState)
 end
 
@@ -230,12 +243,33 @@ function NPCMover.UpdateMovements()
                 if typeof(movementData.target) == "Vector3" then
                     targetPos = movementData.target
                 else
+                    -- Get current position of target orb
                     targetPos = movementData.target:GetPivot().Position
+                end
+                
+                -- Log movement progress
+                local distance = (currentPos - targetPos).Magnitude
+                if movementData.target:GetAttribute("OrbId") then
+                    print(string.format("NPCMover: NPC_%s moving to Orb_%s, current position (X:%.1f, Y:%.1f, Z:%.1f), target position (X:%.1f, Y:%.1f, Z:%.1f), distance: %.1f studs",
+                        npcId,
+                        movementData.target:GetAttribute("OrbId"),
+                        currentPos.X, currentPos.Y, currentPos.Z,
+                        targetPos.X, targetPos.Y, targetPos.Z,
+                        distance
+                    ))
                 end
                 
                 -- Check if we've reached the target
                 if (currentPos - targetPos).Magnitude < 5 then
-                    print("NPCMover: NPC", npcId, "reached target", movementData.target.Name)
+                    if movementData.target:GetAttribute("OrbId") then
+                        print(string.format("NPCMover: NPC_%s reached Orb_%s - NPC position (X:%.1f, Y:%.1f, Z:%.1f), Orb position (X:%.1f, Y:%.1f, Z:%.1f), final distance: %.1f studs",
+                            npcId,
+                            movementData.target:GetAttribute("OrbId"),
+                            currentPos.X, currentPos.Y, currentPos.Z,
+                            targetPos.X, targetPos.Y, targetPos.Z,
+                            distance
+                        ))
+                    end
                     -- Let the touch event handle the actual collection
                 end
             end
