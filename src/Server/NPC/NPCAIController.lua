@@ -2,12 +2,13 @@
 Name: NPCAIController
 Type: ModuleScript
 Location: ServerScriptService.Server.NPC
-Description: Controls NPC behavior and decision making
+Description: Controls high-level NPC behavior decisions and state management
 Interacts With:
   - NPCRegistry: Gets NPC data
   - NPCStateMachine: Sends state change requests
   - PlayerProximityManager: Gets proximity data
   - OrbSpawner: Finds nearby orbs
+  - NPCMovementController: Receives movement decisions
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,7 +20,6 @@ local Promise = require(ReplicatedStorage.Shared.Core.Promise)
 local NPCRegistry = require(ReplicatedStorage.Shared.NPC.NPCRegistry)
 local NPCStateMachine = require(ServerScriptService.Server.NPC.NPCStateMachine)
 local ProximityManager = require(ServerScriptService.Server.NPC.ProximityManager)
-local NPCMover = require(script.Parent.NPCMover)
 local AnimationController = require(script.Parent.AnimationController)
 
 -- Constants
@@ -46,31 +46,26 @@ local function getNearestOrb(npc)
     local nearestDistance = math.huge
     
     -- Get nearby orbs using ProximityManager
-    local nearbyOrbs = ProximityManager.GetOrbsNearPosition(npcPosition, 300) -- Increased search radius to 300 studs
+    local nearbyOrbs = ProximityManager.GetOrbsNearPosition(npcPosition, 300)
     
     -- Find the nearest orb
     for _, orb in ipairs(nearbyOrbs) do
-        if orb and orb:IsDescendantOf(workspace) then
-            local distance = (orb.Position - npcPosition).Magnitude
-            if distance < nearestDistance then
-                nearestOrb = orb
-                nearestDistance = distance
-            end
+        local distance = (orb.Position - npcPosition).Magnitude
+        if distance < nearestDistance then
+            nearestOrb = orb
+            nearestDistance = distance
         end
     end
     
     -- Debug logging
-    if #nearbyOrbs > 0 then
-        print("NPCAIController: Found", #nearbyOrbs, "orbs near NPC", npc:GetAttribute("NPCId"))
-        if nearestOrb then
-            local orbId = nearestOrb:GetAttribute("OrbId")
-            local orbPos = nearestOrb:GetPivot().Position
-            print(string.format("NPCAIController: NPC_%s found target Orb_%s at position (X:%.1f, Y:%.1f, Z:%.1f)",
-                npc:GetAttribute("NPCId"),
-                orbId,
-                orbPos.X, orbPos.Y, orbPos.Z
-            ))
-        end
+    if nearestOrb then
+        local orbId = nearestOrb:GetAttribute("OrbId")
+        local orbPos = nearestOrb:GetPivot().Position
+        print(string.format("NPCAIController: NPC_%s found target Orb_%s at position (X:%.1f, Y:%.1f, Z:%.1f)",
+            npc:GetAttribute("NPCId"),
+            orbId,
+            orbPos.X, orbPos.Y, orbPos.Z
+        ))
     end
     
     return nearestOrb, nearestDistance
@@ -78,21 +73,31 @@ end
 
 local function getNearestPlayer(npc)
     local npcPosition = npc:GetPivot().Position
-    local npcSize = npc:GetAttribute("Size") or 1
     local nearestPlayer = nil
     local nearestDistance = math.huge
     
-    for _, player in ipairs(game.Players:GetPlayers()) do
+    -- Get nearby players using ProximityManager
+    local nearbyPlayers = ProximityManager.GetPlayersNearPosition(npcPosition, 300)
+    
+    -- Find the nearest player
+    for _, player in ipairs(nearbyPlayers) do
         local character = player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            local playerPosition = character:GetPivot().Position
-            local distance = (playerPosition - npcPosition).Magnitude
-            
+        if character then
+            local distance = (character:GetPivot().Position - npcPosition).Magnitude
             if distance < nearestDistance then
                 nearestPlayer = character
                 nearestDistance = distance
             end
         end
+    end
+    
+    -- Debug logging
+    if nearestPlayer then
+        print(string.format("NPCAIController: NPC_%s found player %s at distance %.1f",
+            npc:GetAttribute("NPCId"),
+            nearestPlayer.Parent.Name,
+            nearestDistance
+        ))
     end
     
     return nearestPlayer, nearestDistance
@@ -130,7 +135,6 @@ function NPCAIController.Init()
             
             -- Initialize dependencies
             NPCStateMachine.Init()
-            NPCMover.Init()
             AnimationController.Init()
             
             NPCAIController._initialized = true
@@ -177,7 +181,6 @@ function NPCAIController.UnregisterNPC(npc)
 
     NPCAIController._activeNPCs[npcId] = nil
     NPCStateMachine.CleanupNPC(npcId)
-    NPCMover.StopMovement(npc)
     print("NPCAIController: Unregistered NPC", npcId)
 end
 
@@ -196,59 +199,50 @@ function NPCAIController.UpdateAllNPCs()
         local nearestPlayer, playerDistance = getNearestPlayer(npc)
         local nearestOrb, orbDistance = getNearestOrb(npc)
         
-        -- If no targets are available, go to WANDERING state
-        if not nearestOrb and not nearestPlayer then
-            if currentState ~= "WANDERING" then
-                print("NPCAIController: NPC", npcId, "no targets available, starting to wander")
-                NPCStateMachine.ChangeState(npcId, "WANDERING", nil)
-            end
-            continue
-        end
+        -- Make high-level behavior decisions
+        local newState, target = NPCAIController._decideBehavior(npc, currentState, nearestPlayer, playerDistance, nearestOrb, orbDistance)
         
-        -- Handle fleeing behavior for smaller NPCs
-        if nearestPlayer and shouldFleeFromPlayer(npc, nearestPlayer) then
-            if playerDistance <= DISTANCES.FLEE_START then
-                if currentState ~= "FLEEING" then
-                    print("NPCAIController: NPC", npcId, "fleeing from larger player")
-                    NPCStateMachine.ChangeState(npcId, "FLEEING", nearestPlayer)
-                end
-                continue
-            end
-        end
-        
-        -- Handle hunting behavior for larger NPCs
-        if nearestPlayer and not shouldFleeFromPlayer(npc, nearestPlayer) then
-            if playerDistance <= DISTANCES.ATTACK_RANGE then
-                if currentState ~= "PLAYER_ATTACK" then
-                    print("NPCAIController: NPC", npcId, "attacking player")
-                    NPCStateMachine.ChangeState(npcId, "PLAYER_ATTACK", nearestPlayer)
-                end
-                continue
-            elseif playerDistance <= DISTANCES.HUNT_START then
-                if currentState ~= "PLAYER_HUNTING" then
-                    print("NPCAIController: NPC", npcId, "hunting player")
-                    NPCStateMachine.ChangeState(npcId, "PLAYER_HUNTING", nearestPlayer)
-                end
-                continue
-            end
-        end
-        
-        -- Handle orb seeking
-        if nearestOrb then
-            if currentState ~= "ORB_SEEKING" then
-                print("NPCAIController: NPC", npcId, "seeking orb")
-                NPCStateMachine.ChangeState(npcId, "ORB_SEEKING", nearestOrb)
-            else
-                -- Update target orb even if already in ORB_SEEKING state
-                local currentTarget = npc:GetAttribute("CurrentTarget")
-                local orbId = nearestOrb:GetAttribute("OrbId")
-                if currentTarget ~= orbId then
-                    print("NPCAIController: NPC", npcId, "updating target orb")
-                    NPCStateMachine.ChangeState(npcId, "ORB_SEEKING", nearestOrb)
-                end
-            end
+        -- Only change state if it's different or target changed
+        if newState ~= currentState or target ~= data.target then
+            print(string.format("NPCAIController: NPC_%s changing state from %s to %s", npcId, currentState, newState))
+            NPCStateMachine.ChangeState(npcId, newState, target)
+            data.target = target
         end
     end
+end
+
+-- New helper function to centralize behavior decision logic
+function NPCAIController._decideBehavior(npc, currentState, nearestPlayer, playerDistance, nearestOrb, orbDistance)
+    local npcId = npc:GetAttribute("NPCId")
+    
+    -- If no targets are available, go to WANDERING state
+    if not nearestOrb and not nearestPlayer then
+        return "WANDERING", nil
+    end
+    
+    -- Handle fleeing behavior for smaller NPCs
+    if nearestPlayer and shouldFleeFromPlayer(npc, nearestPlayer) then
+        if playerDistance <= DISTANCES.FLEE_START then
+            return "FLEEING", nearestPlayer
+        end
+    end
+    
+    -- Handle hunting behavior for larger NPCs
+    if nearestPlayer and not shouldFleeFromPlayer(npc, nearestPlayer) then
+        if playerDistance <= DISTANCES.ATTACK_RANGE then
+            return "PLAYER_ATTACK", nearestPlayer
+        elseif playerDistance <= DISTANCES.HUNT_START then
+            return "PLAYER_HUNTING", nearestPlayer
+        end
+    end
+    
+    -- Default to orb seeking if available
+    if nearestOrb then
+        return "ORB_SEEKING", nearestOrb
+    end
+    
+    -- Fallback to current state and target if no changes needed
+    return currentState, NPCAIController._activeNPCs[npcId].target
 end
 
 -- Set up RunService connection for AI updates

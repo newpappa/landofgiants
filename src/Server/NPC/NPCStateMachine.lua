@@ -2,10 +2,12 @@
 Name: NPCStateMachine
 Type: ModuleScript
 Location: ServerScriptService.Server.NPC
-Description: Tracks and reports NPC states. Does not make decisions about state changes.
-             Enforces cooldown between state changes to create lumbering, deliberate behavior.
+Description: Manages NPC state transitions and enforces state change rules.
+             Coordinates state changes between AI, Movement, and Animation systems.
+             Does not make decisions about state changes or handle movement.
 Interacts With:
   - NPCAIController: Receives state change requests
+  - NPCMovementController: Notifies of state changes for movement updates
   - AnimationController: Notifies of state changes for animation triggers
   - NPCRegistry: Updates NPC metadata with current state
 --]]
@@ -17,7 +19,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Promise = require(ReplicatedStorage.Shared.Core.Promise)
 local NPCRegistry = require(ReplicatedStorage.Shared.NPC.NPCRegistry)
 local EventManager = require(ReplicatedStorage.Shared.Core.EventManager)
-local NPCMover = require(script.Parent.NPCMover)
+local NPCMovementController = require(script.Parent.NPCMovementController)
 local AnimationController = require(script.Parent.AnimationController)
 
 -- Get the state change event
@@ -36,7 +38,7 @@ local STATES = {
 
 local NPCStateMachine = {
     _initialized = false,
-    _stateHistory = {}, -- {npcId = {state = state, timestamp = timestamp}}
+    _stateHistory = {}, -- {npcId = {state = state, timestamp = timestamp, target = target}}
     _lastStateChange = {}, -- {npcId = timestamp}
     _invalidStateWarnings = {}
 }
@@ -51,7 +53,7 @@ function NPCStateMachine.Init()
             print("NPCStateMachine: Initializing...")
             
             -- Initialize dependencies
-            NPCMover.Init()
+            NPCMovementController.Init()
             AnimationController.Init()
             
             NPCStateMachine._initialized = true
@@ -88,6 +90,7 @@ function NPCStateMachine.ChangeState(npcId, newState, target)
         return
     end
 
+    -- Validate state change
     local currentState = NPCStateMachine.GetState(npcId)
     if currentState == newState then return end
 
@@ -99,10 +102,20 @@ function NPCStateMachine.ChangeState(npcId, newState, target)
         return
     end
 
-    -- Update state history
+    -- Check cooldown
+    if not NPCStateMachine._canChangeState(npcId) then
+        print(string.format("NPCStateMachine: State change for NPC %s blocked by cooldown. Time remaining: %.1f seconds",
+            npcId,
+            NPCStateMachine.GetTimeUntilNextChange(npcId)
+        ))
+        return
+    end
+
+    -- Update state history with target
     NPCStateMachine._stateHistory[npcId] = {
         state = newState,
-        timestamp = os.time()
+        timestamp = os.time(),
+        target = target
     }
     
     -- Update last state change timestamp
@@ -111,24 +124,34 @@ function NPCStateMachine.ChangeState(npcId, newState, target)
     -- Update state in registry
     NPCRegistry.UpdateNPCState(npcId, newState)
     
-    -- Update movement and animation
-    NPCMover.HandleStateChange(npc, newState, target)
+    -- Notify dependent systems
+    NPCMovementController.HandleStateChange(npc, newState, target)
     AnimationController.HandleNPCStateChange(npc, newState)
     
-    -- Fire state change event with target
+    -- Fire state change event
     if NPCStateChanged then
         NPCStateChanged:FireAllClients(npc, newState, target)
     else
         warn("NPCStateMachine: NPCStateChanged event not found")
     end
     
-    print("NPCStateMachine: Changed state for NPC", npcId, "to", newState)
+    print(string.format("NPCStateMachine: NPC_%s changed state from %s to %s with target %s",
+        npcId,
+        currentState or "NONE",
+        newState,
+        target and (target:GetAttribute("OrbId") or target.Name) or "none"
+    ))
 end
 
--- Gets current state of NPC
+-- Gets current state and target of NPC
 function NPCStateMachine.GetState(npcId)
     local history = NPCStateMachine._stateHistory[npcId]
     return history and history.state or nil
+end
+
+function NPCStateMachine.GetStateTarget(npcId)
+    local history = NPCStateMachine._stateHistory[npcId]
+    return history and history.target or nil
 end
 
 -- Gets time until next possible state change
