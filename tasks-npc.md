@@ -111,3 +111,33 @@
    - [x] Remove position calculations
    - [x] Validate implementation aligns with architecture in @tasks-npc.md
    - [x] Validate implementation aligns with the data flow in @tasks-npc.md
+
+### Improvement Tasks
+
+1. **Orb Interaction System**:
+   - [ ] Implement orb collection/consumption
+   - [ ] Add orb interaction detection
+   - [ ] Handle post-orb interaction state
+   - [ ] Add orb interaction animations
+   - [ ] Add orb collection effects
+
+2. **State Management Improvements**:
+   - [ ] Add post-orb interaction state handling
+   - [ ] Implement return to WANDERING after orb interaction
+   - [ ] Add orb targeting cooldown system
+   - [ ] Prevent repeated targeting of same orb
+   - [ ] Add state transition animations
+
+3. **Movement System Optimization**:
+   - [ ] Optimize movement timeout system
+   - [ ] Reduce movement progress log frequency
+   - [ ] Improve path recalculation efficiency
+   - [ ] Add movement smoothing
+   - [ ] Implement better stuck detection
+
+4. **Performance Optimizations**:
+   - [ ] Reduce log spam
+   - [ ] Optimize proximity checks
+   - [ ] Implement spatial partitioning
+   - [ ] Add NPC culling for distant NPCs
+   - [ ] Optimize animation transitions

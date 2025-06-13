@@ -28,6 +28,7 @@ local WANDER_TIMEOUT = 5 -- seconds before picking new wander position
 
 local NPCMovementController = {
     _initialized = false,
+    _initPromise = nil,
     _activeMovements = {}, -- {npcId = {target = target, startTime = time, retryCount = count}}
     _wanderTargets = {}, -- {npcId = {position = Vector3, startTime = time}}
     _updateFrequency = 0.1 -- how often to update movements (in seconds)
@@ -65,34 +66,42 @@ function NPCMovementController.Init()
     if NPCMovementController._initialized then
         return Promise.resolve()
     end
+    
+    if NPCMovementController._initPromise then
+        return NPCMovementController._initPromise
+    end
 
-    return Promise.new(function(resolve, reject)
+    NPCMovementController._initPromise = Promise.new(function(resolve, reject)
         local success, err = pcall(function()
             print("NPCMovementController: Initializing...")
             
             -- Initialize dependencies
-            NPCMover.Init()
-            
-            -- Set up RunService connection for movement updates
-            RunService.Heartbeat:Connect(function()
-                local now = tick()
-                if now - (NPCMovementController._lastUpdate or 0) >= NPCMovementController._updateFrequency then
-                    NPCMovementController._lastUpdate = now
-                    NPCMovementController.UpdateMovements()
-                end
+            NPCMover.Init():andThen(function()
+                -- Set up RunService connection for movement updates
+                RunService.Heartbeat:Connect(function()
+                    local now = tick()
+                    if now - (NPCMovementController._lastUpdate or 0) >= NPCMovementController._updateFrequency then
+                        NPCMovementController._lastUpdate = now
+                        NPCMovementController.UpdateMovements()
+                    end
+                end)
+                
+                NPCMovementController._initialized = true
+                print("NPCMovementController: Initialization complete")
+                resolve()
+            end):catch(function(initErr)
+                warn("NPCMovementController: Failed to initialize NPCMover -", initErr)
+                reject(initErr)
             end)
-            
-            NPCMovementController._initialized = true
         end)
 
-        if success then
-            print("NPCMovementController: Initialization complete")
-            resolve()
-        else
+        if not success then
             warn("NPCMovementController: Failed to initialize -", err)
             reject(err)
         end
     end)
+    
+    return NPCMovementController._initPromise
 end
 
 function NPCMovementController.HandleStateChange(npc, newState, target)
@@ -121,7 +130,8 @@ function NPCMovementController.HandleStateChange(npc, newState, target)
             startTime = os.time()
         }
     elseif newState == "ORB_SEEKING" and target then
-        targetPosition = calculatePathToTarget(npc, target)
+        -- For ORB_SEEKING, use the target's position directly
+        targetPosition = target:GetPivot().Position
     elseif newState == "PLAYER_HUNTING" and target then
         targetPosition = calculatePathToTarget(npc, target)
     elseif newState == "FLEEING" and target then
@@ -137,7 +147,12 @@ function NPCMovementController.HandleStateChange(npc, newState, target)
         }
 
         -- Send movement instructions to NPCMover
-        NPCMover.HandleStateChange(npc, newState, target)
+        local success = NPCMover.MoveTo(npc, targetPosition, newState)
+        if not success then
+            warn("NPCMovementController: Failed to start movement for NPC", npcId)
+            NPCMovementController._activeMovements[npcId] = nil
+            return
+        end
         
         -- Log movement start
         if target and target:GetAttribute("OrbId") then
@@ -173,15 +188,22 @@ function NPCMovementController.UpdateMovements()
                     NPCMovementController._wanderTargets[npcId].position = newWanderPos
                     NPCMovementController._wanderTargets[npcId].startTime = os.time()
                     NPCMovementController._activeMovements[npcId].targetPosition = newWanderPos
+                    NPCMover.MoveTo(npc, newWanderPos, "WANDERING")
                 end
                 
-                -- Check if we've been wandering too long
+                -- Check if we've been wandering too long without reaching target
                 if os.time() - wanderData.startTime > WANDER_TIMEOUT then
-                    print("NPCMovementController: NPC", npcId, "wander timeout, picking new position")
-                    local newWanderPos = getRandomWanderPosition(npc)
-                    NPCMovementController._wanderTargets[npcId].position = newWanderPos
-                    NPCMovementController._wanderTargets[npcId].startTime = os.time()
-                    NPCMovementController._activeMovements[npcId].targetPosition = newWanderPos
+                    -- Only pick new position if we're not making progress
+                    local lastPos = NPCMovementController._wanderTargets[npcId].lastPosition
+                    if lastPos and (currentPos - lastPos).Magnitude < 1 then
+                        print("NPCMovementController: NPC", npcId, "wander timeout, picking new position")
+                        local newWanderPos = getRandomWanderPosition(npc)
+                        NPCMovementController._wanderTargets[npcId].position = newWanderPos
+                        NPCMovementController._wanderTargets[npcId].startTime = os.time()
+                        NPCMovementController._activeMovements[npcId].targetPosition = newWanderPos
+                        NPCMover.MoveTo(npc, newWanderPos, "WANDERING")
+                    end
+                    NPCMovementController._wanderTargets[npcId].lastPosition = currentPos
                 end
             end
         end
@@ -196,6 +218,13 @@ function NPCMovementController.UpdateMovements()
                 -- Recalculate path
                 if movementData.target then
                     movementData.targetPosition = calculatePathToTarget(npc, movementData.target)
+                end
+                
+                -- Retry movement
+                local success = NPCMover.MoveTo(npc, movementData.targetPosition, movementData.target and "ORB_SEEKING" or "WANDERING")
+                if not success then
+                    warn("NPCMovementController: Failed to retry movement for NPC", npcId)
+                    NPCMovementController._activeMovements[npcId] = nil
                 end
             else
                 print("NPCMovementController: NPC", npcId, "movement failed after retries")

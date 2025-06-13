@@ -166,7 +166,7 @@ function NPCAIController.RegisterNPC(npc)
     }
     
     -- Set initial state
-    NPCStateMachine.ChangeState(npcId, "ORB_SEEKING", nil)
+    NPCStateMachine.ChangeState(npcId, "WANDERING", nil)
     print("NPCAIController: Registered NPC", npcId)
 end
 
@@ -204,7 +204,12 @@ function NPCAIController.UpdateAllNPCs()
         
         -- Only change state if it's different or target changed
         if newState ~= currentState or target ~= data.target then
-            print(string.format("NPCAIController: NPC_%s changing state from %s to %s", npcId, currentState, newState))
+            print(string.format("NPCAIController: NPC_%s changing state from %s to %s with target %s", 
+                npcId, 
+                currentState, 
+                newState,
+                target and (target:GetAttribute("OrbId") or target.Name) or "none"
+            ))
             NPCStateMachine.ChangeState(npcId, newState, target)
             data.target = target
         end

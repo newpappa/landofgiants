@@ -38,6 +38,7 @@ local STATES = {
 
 local NPCStateMachine = {
     _initialized = false,
+    _initPromise = nil,
     _stateHistory = {}, -- {npcId = {state = state, timestamp = timestamp, target = target}}
     _lastStateChange = {}, -- {npcId = timestamp}
     _invalidStateWarnings = {}
@@ -47,26 +48,35 @@ function NPCStateMachine.Init()
     if NPCStateMachine._initialized then
         return Promise.resolve()
     end
+    
+    if NPCStateMachine._initPromise then
+        return NPCStateMachine._initPromise
+    end
 
-    return Promise.new(function(resolve, reject)
+    NPCStateMachine._initPromise = Promise.new(function(resolve, reject)
         local success, err = pcall(function()
             print("NPCStateMachine: Initializing...")
             
-            -- Initialize dependencies
-            NPCMovementController.Init()
-            AnimationController.Init()
-            
-            NPCStateMachine._initialized = true
+            -- Initialize dependencies in sequence
+            NPCMovementController.Init():andThen(function()
+                return AnimationController.Init()
+            end):andThen(function()
+                NPCStateMachine._initialized = true
+                print("NPCStateMachine: Initialization complete")
+                resolve()
+            end):catch(function(initErr)
+                warn("NPCStateMachine: Failed to initialize dependencies -", initErr)
+                reject(initErr)
+            end)
         end)
 
-        if success then
-            print("NPCStateMachine initialized!")
-            resolve()
-        else
+        if not success then
             warn("NPCStateMachine: Failed to initialize -", err)
             reject(err)
         end
     end)
+    
+    return NPCStateMachine._initPromise
 end
 
 -- Returns true if NPC can change state (cooldown elapsed)
@@ -92,7 +102,7 @@ function NPCStateMachine.ChangeState(npcId, newState, target)
 
     -- Validate state change
     local currentState = NPCStateMachine.GetState(npcId)
-    if currentState == newState then return end
+    if currentState == newState and target == NPCStateMachine.GetStateTarget(npcId) then return end
 
     if not STATES[newState] then
         if not NPCStateMachine._invalidStateWarnings[newState] then

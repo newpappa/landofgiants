@@ -27,6 +27,7 @@ local MOVEMENT_SPEEDS = {
 
 local NPCMover = {
     _initialized = false,
+    _initPromise = nil,
     _activeMovements = {}, -- {npcId = {targetPos = Vector3, speed = number, isFleeing = boolean}}
     _updateFrequency = 0.1, -- How often to update movements (in seconds)
     _lastUpdate = 0
@@ -64,7 +65,10 @@ local function reportMovementStatus(npc, status, details)
 end
 
 local function executeMovement(npc, targetPosition, speed, isFleeing)
-    if not npc then return end
+    if not npc then 
+        warn("NPCMover: Attempted to execute movement with nil NPC")
+        return false
+    end
     
     local humanoid = npc:FindFirstChild("Humanoid")
     if not humanoid then
@@ -72,7 +76,7 @@ local function executeMovement(npc, targetPosition, speed, isFleeing)
             message = "No Humanoid found",
             targetPosition = targetPosition
         })
-        return
+        return false
     end
     
     local currentPos = npc:GetPivot().Position
@@ -96,26 +100,33 @@ local function executeMovement(npc, targetPosition, speed, isFleeing)
         speed = speed,
         isFleeing = isFleeing
     })
+    
+    return true
 end
 
 -- Public API
 
 function NPCMover.MoveTo(npc, targetPosition, movementType)
+    if not NPCMover._initialized then
+        warn("NPCMover: Attempted to move NPC before initialization")
+        return false
+    end
+    
     if not npc then 
         warn("NPCMover: Received MoveTo with nil NPC")
-        return 
+        return false
     end
     
     local npcId = npc:GetAttribute("NPCId")
     if not npcId then 
         warn("NPCMover: NPC has no NPCId attribute")
-        return 
+        return false
     end
     
     -- Verify NPC is in registry
     if not NPCRegistry.GetNPCById(npcId) then
         warn("NPCMover: NPC", npcId, "not found in registry")
-        return
+        return false
     end
     
     -- Store movement data
@@ -126,7 +137,7 @@ function NPCMover.MoveTo(npc, targetPosition, movementType)
     }
     
     -- Execute the movement
-    executeMovement(npc, targetPosition, NPCMover._activeMovements[npcId].speed, NPCMover._activeMovements[npcId].isFleeing)
+    return executeMovement(npc, targetPosition, NPCMover._activeMovements[npcId].speed, NPCMover._activeMovements[npcId].isFleeing)
 end
 
 function NPCMover.StopMovement(npc)
@@ -196,8 +207,12 @@ function NPCMover.Init()
     if NPCMover._initialized then
         return Promise.resolve()
     end
+    
+    if NPCMover._initPromise then
+        return NPCMover._initPromise
+    end
 
-    return Promise.new(function(resolve, reject)
+    NPCMover._initPromise = Promise.new(function(resolve, reject)
         local success, err = pcall(function()
             print("NPCMover: Initializing...")
             
@@ -221,6 +236,8 @@ function NPCMover.Init()
             reject(err)
         end
     end)
+    
+    return NPCMover._initPromise
 end
 
 return NPCMover

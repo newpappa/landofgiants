@@ -60,7 +60,7 @@ function NPCFactory.CreateNPC(spawnPosition)
     npc:SetAttribute("IsNPC", true)
     npc:SetAttribute("NPCId", npcId)
     npc:SetAttribute("SpawnTime", os.time())
-    npc:SetAttribute("CurrentState", "ORB_SEEKING")
+    npc:SetAttribute("CurrentState", "WANDERING")
     npc:SetAttribute("Size", sizeData.scale)
     npc:SetAttribute("VisualHeight", sizeData.visualHeight)
     
@@ -72,7 +72,7 @@ function NPCFactory.CreateNPC(spawnPosition)
     NPCFactory._activeNPCs[npc] = {
         sizeData = sizeData,
         lastPosition = spawnPosition,
-        state = "OrbSeeking"
+        state = "WANDERING"
     }
     
     print("NPCFactory: Created NPC", npcId, "at size", sizeData.scale)
